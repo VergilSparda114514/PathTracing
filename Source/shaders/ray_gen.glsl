@@ -19,11 +19,11 @@ layout(set = MAT_SET, binding = 0, std430) readonly buffer MaterialsBuffer {
 	Material Materials[];
 };
 
-layout(set = RESO_SET, binding = 0, std430) readonly buffer ReservoirBuffer {
+layout(set = RESO_SET, binding = 0, std430) buffer ReservoirBuffer {
 	Reservoir Reservoirs[];
 };
 
-layout(set = RESO_SET, binding = 1, std430) readonly buffer PrevReservoirBuffer {
+layout(set = RESO_SET, binding = 1, std430) buffer PrevReservoirBuffer {
 	Reservoir PrevReservoirs[];
 };
 
