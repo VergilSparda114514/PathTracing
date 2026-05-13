@@ -1,0 +1,31 @@
+#version 460
+
+layout(set = 1, binding = 0, rgba32f) uniform image2D PingImage;
+layout(set = 1, binding = 1, rgba32f) uniform image2D PongImage;
+
+layout(push_constant) uniform PushConstant {
+	float radius;
+} pc;
+
+layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 uv = (vec2(coord) + 0.5f) / vec2(imageSize(PongImage));
+	vec2 lowCoord = uv * vec2(imageSize(PingImage)) - 0.5f;
+
+	ivec2 base = ivec2(floor(lowCoord));
+	vec2 f = fract(lowCoord);
+
+	vec3 c0 = imageLoad(PingImage, base + ivec2(0, 0)).rgb;
+	vec3 c1 = imageLoad(PingImage, base + ivec2(1, 0)).rgb;
+	vec3 c2 = imageLoad(PingImage, base + ivec2(0, 1)).rgb;
+	vec3 c3 = imageLoad(PingImage, base + ivec2(1, 1)).rgb;
+
+	vec3 upsample = mix(mix(c0, c2, f.x), mix(c1, c3, f.x), f.y);
+	vec3 color = imageLoad(PongImage, coord).rgb;
+
+	imageStore(PongImage, coord, vec4(color + upsample * pc.radius, 1.0f));
+}

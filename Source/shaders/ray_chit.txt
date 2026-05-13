@@ -1,0 +1,57 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
+
+#include "../shared_with_shaders.h"
+
+layout(set = ATRIB_SET, binding = 0, std430) readonly buffer AttribsBuffer {
+    VertexAttribute VertexAttribs[];
+} AttribsArray[];
+
+layout(set = FACES_SET, binding = 0, std430) readonly buffer FacesBuffer {
+    FaceAttribute Faces[];
+} FacesArray[];
+
+layout(set = MAT_SET, binding = 1) uniform sampler2D Textures[];
+
+layout(location = 0) rayPayloadInEXT RayPayload PrimaryRay;
+                     hitAttributeEXT vec2 HitAttribs;
+
+float BaryLerp(float a, float b, float c, vec3 barycentrics)
+{
+    return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z;
+}
+
+vec2 BaryLerp(vec2 a, vec2 b, vec2 c, vec3 barycentrics)
+{
+    return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z;
+}
+
+vec3 BaryLerp(vec3 a, vec3 b, vec3 c, vec3 barycentrics)
+{
+    return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z;
+}
+
+void main()
+{
+    const vec3 barycentrics = vec3(1.0f - HitAttribs.x - HitAttribs.y, HitAttribs.x, HitAttribs.y);
+    
+    const uint objId = uint(gl_InstanceCustomIndexEXT);
+    const uvec3 face = FacesArray[objId].Faces[gl_PrimitiveID].face;
+    const uint matID = FacesArray[objId].Faces[gl_PrimitiveID].matID;
+
+    VertexAttribute v0 = AttribsArray[objId].VertexAttribs[int(face.x)];
+    VertexAttribute v1 = AttribsArray[objId].VertexAttribs[int(face.y)];
+    VertexAttribute v2 = AttribsArray[objId].VertexAttribs[int(face.z)];
+
+    // interpolate our vertex attribs
+    vec3 normal = normalize(transpose(inverse(mat3(gl_ObjectToWorldEXT))) * BaryLerp(v0.normal, v1.normal, v2.normal, barycentrics));
+    const vec2 uv = BaryLerp(v0.uv, v1.uv, v2.uv, barycentrics);
+
+    const vec3 texel = textureLod(Textures[matID], uv, 0.0f).rgb;
+
+    PrimaryRay.colorAndDist = vec4(texel, gl_HitTEXT);
+    PrimaryRay.normalAndObjID = vec4(normal, objId);
+    PrimaryRay.matID = matID;
+}

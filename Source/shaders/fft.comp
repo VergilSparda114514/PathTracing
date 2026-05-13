@@ -1,0 +1,64 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+#include "lib/universal.h"
+
+layout(set = 0, binding = 0, rgba32f) uniform image2D PingImage;
+layout(set = 0, binding = 1, rgba32f) uniform image2D PongImage;
+
+layout(push_constant) uniform PushConstants {
+    int vertical;
+    int inverseFFT;
+} pc;
+
+layout(local_size_x = 1, local_size_y = 1024, local_size_z = 1) in;
+
+shared vec3[1024] fft_re;
+shared vec3[1024] fft_im;
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    int i = coord[pc.vertical];
+	int shifted = (i + SIZE / 2) % SIZE;
+    fft_re[shifted] = imageLoad(PingImage, coord).rgb;
+    fft_im[shifted] = imageLoad(PongImage, coord).rgb;
+
+    memoryBarrierShared();
+    barrier();
+
+    for(int stage = 2; stage <= SIZE; stage <<= 1)
+    {
+        int base   = i / stage * (stage >> 1);
+        int offset = i % (stage >> 1);
+        int index0 = base + offset;
+        int index1 = index0 + (SIZE >> 1);
+
+        complexVec3 twiddle = complexExp(complexVec3(vec3(0.0), vec3((pc.inverseFFT == 1 ? -2.0 : 2.0) * pi * i / stage)));
+
+        complexVec3 fft_z = complexAdd(
+            vectorsToComplex(fft_re[index0], fft_im[index0]), 
+            complexMul(vectorsToComplex(fft_re[index1], fft_im[index1]), twiddle)
+        );
+
+        memoryBarrierShared();
+        barrier();
+
+        mat2x3 fft_comp = complexToMatrix(fft_z);
+
+        fft_re[i] = fft_comp[0];
+        fft_im[i] = fft_comp[1];
+
+        memoryBarrierShared();
+        barrier();
+    }
+
+    if (pc.inverseFFT == 1)
+    {
+        fft_re[shifted] /= SIZE;
+        fft_im[shifted] /= SIZE;
+    }
+
+    imageStore(PingImage, coord, vec4(fft_re[shifted], 0.0));
+    imageStore(PongImage, coord, vec4(fft_im[shifted], 0.0));
+}

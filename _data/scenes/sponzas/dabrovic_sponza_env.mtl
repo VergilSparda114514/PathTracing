@@ -1,0 +1,320 @@
+# Blender 4.4.3 MTL File: 'None'
+# www.blender.org
+
+newmtl sp_00_luk_mal1
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_ST_KP.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_St_kp-bump.jpg
+
+newmtl sp_00_luk_mali
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/SP_LUK.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/sp_luk-bump.JPG
+
+newmtl sp_00_pod
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/KAMEN.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/KAMEN-bump.jpg
+
+newmtl sp_00_prozor
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/PROZOR1.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/PROZOR1.JPG
+
+newmtl sp_00_stup
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_STUB.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_STUB-bump.jpg
+
+newmtl sp_00_svod
+Ks 0.031895 0.031895 0.031895
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.968377
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/KAMEN-stup.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/KAMEN-stup.JPG
+
+newmtl sp_00_vrata_kock
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.858579
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/VRATA_KO.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/VRATA_KO.JPG
+
+newmtl sp_00_vrata_krug
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.858579
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/VRATA_KR.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/VRATA_KR.JPG
+
+newmtl sp_00_zid
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/KAMEN.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/KAMEN-bump.jpg
+
+newmtl sp_01_luk_a
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/SP_LUK.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/sp_luk-bump.JPG
+
+newmtl sp_01_stub
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_STUB.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_STUB-bump.jpg
+
+newmtl sp_01_stub_baza
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_S_BA.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_S_BA.JPG
+
+newmtl sp_01_stub_baza_
+Kd 0.784314 0.784314 0.784314
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.858579
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+
+newmtl sp_01_stub_kut
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_STUB.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_STUB-bump.jpg
+
+newmtl sp_01_stup
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/X01_ST.JPG
+
+newmtl sp_01_stup_baza
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/01_S_BA.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/01_S_BA.JPG
+
+newmtl sp_02_reljef
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/RELJEF.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/reljef-bump.jpg
+
+newmtl sp_svod_kapitel
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/00_SKAP.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/00_SKAP.JPG
+
+newmtl sp_vijenac
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/00_SKAP.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/00_SKAP.JPG
+
+newmtl sp_zid_vani
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/dabrovic_sponza/KAMEN.JPG
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/KAMEN-bump.jpg

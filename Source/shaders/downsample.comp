@@ -1,0 +1,21 @@
+#version 460
+
+layout(set = 1, binding = 0, rgba32f) uniform image2D PingImage;
+layout(set = 1, binding = 1, rgba32f) uniform image2D PongImage;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 src = coord * 2;
+
+	vec3 c0 = imageLoad(PingImage, src + ivec2(0, 0)).rgb;
+	vec3 c1 = imageLoad(PingImage, src + ivec2(1, 0)).rgb;
+	vec3 c2 = imageLoad(PingImage, src + ivec2(0, 1)).rgb;
+	vec3 c3 = imageLoad(PingImage, src + ivec2(1, 1)).rgb;
+
+	vec3 color = (c0 + c1 + c2 + c3) * 0.25f;
+
+	imageStore(PongImage, coord, vec4(color, 1.0f));
+}
