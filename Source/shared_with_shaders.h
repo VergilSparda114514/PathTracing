@@ -19,6 +19,7 @@
 #define FACES_SET 2
 #define MAT_SET 3
 #define NORM_SET 4
+#define RESO_SET 5
 
 #define SCENE_AS_BINDING 0
 #define SCENE_ENV_BINDING 1

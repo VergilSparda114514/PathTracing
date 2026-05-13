@@ -40,7 +40,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Load(s_ScenesFolder / "boxes/glass_cube.obj");
+	m_Scene.Load(s_ScenesFolder / "sponzas/dabrovic_sponza.obj");
 	CreateScene();
 	CreateBuffers();
 	CreateResultImage();
@@ -361,6 +361,11 @@ void RTXApp::CreateResultImage()
 	m_PongDescInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	m_PongDescInfo.imageView = m_PongImage.GetImageView();
 	m_PongDescInfo.sampler = m_PongImage.GetSampler();
+
+	uint32_t size = m_Settings.resolutionX * m_Settings.resolutionY;
+
+	m_CurrResovoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	m_PrevResovoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
 void RTXApp::CreateRTDescriptorSetsLayouts()
@@ -505,6 +510,36 @@ void RTXApp::CreateRTDescriptorSetsLayouts()
 
 	error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_RTDescriptorSetsLayouts[NORM_SET]);
 	CHECK_VK_ERROR(error, L"vkCreateDescriptorSetLayout");
+
+	// set 5:
+	// binding 0  ->  current frame reservoirs
+	// binding 1  ->  previous frame reservoirs
+
+	VkDescriptorSetLayoutBinding currReservoirBinding{};
+	currReservoirBinding.binding = 0;
+	currReservoirBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	currReservoirBinding.descriptorCount = 1;
+	currReservoirBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	currReservoirBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding prevReservoirBinding{};
+	prevReservoirBinding.binding = 1;
+	prevReservoirBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	prevReservoirBinding.descriptorCount = 1;
+	prevReservoirBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	prevReservoirBinding.pImmutableSamplers = nullptr;
+
+	bindings =
+	{
+		currReservoirBinding,
+		prevReservoirBinding,
+	};
+
+	setLayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	setLayoutInfo.pBindings = bindings.data();
+
+	error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_RTDescriptorSetsLayouts[RESO_SET]);
+	CHECK_VK_ERROR(error, L"vkCreateDescriptorSetLayout");
 }
 
 void RTXApp::UpdateRTDescriptorSets()
@@ -549,6 +584,7 @@ void RTXApp::UpdateRTDescriptorSets()
 		numMeshes,      // faces buffer for each mesh
 		numMaterials + 1,   // materials
 		numMaterials,   // bump maps
+		2,
 	};
 
 	VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo{};
@@ -745,6 +781,48 @@ void RTXApp::UpdateRTDescriptorSets()
 
 	///////////////////////////////////////////////////////////
 
+	VkWriteDescriptorSet currReservoirBufferWrite{};
+	currReservoirBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	currReservoirBufferWrite.pNext = nullptr;
+	currReservoirBufferWrite.dstSet = m_RTDescriptorSets[RESO_SET];
+	currReservoirBufferWrite.dstBinding = 0;
+	currReservoirBufferWrite.dstArrayElement = 0;
+	currReservoirBufferWrite.descriptorCount = 1;
+	currReservoirBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	currReservoirBufferWrite.pImageInfo = nullptr;
+	{
+		VkDescriptorBufferInfo resoDataBufferInfo{};
+		resoDataBufferInfo.buffer = m_CurrResovoirBuffer.GetBuffer();
+		resoDataBufferInfo.offset = 0;
+		resoDataBufferInfo.range = m_CurrResovoirBuffer.GetSize();
+
+		currReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
+	}
+	currReservoirBufferWrite.pTexelBufferView = nullptr;
+
+	///////////////////////////////////////////////////////////
+
+	VkWriteDescriptorSet prevReservoirBufferWrite{};
+	prevReservoirBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	prevReservoirBufferWrite.pNext = nullptr;
+	prevReservoirBufferWrite.dstSet = m_RTDescriptorSets[RESO_SET];
+	prevReservoirBufferWrite.dstBinding = 1;
+	prevReservoirBufferWrite.dstArrayElement = 0;
+	prevReservoirBufferWrite.descriptorCount = 1;
+	prevReservoirBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	prevReservoirBufferWrite.pImageInfo = nullptr;
+	{
+		VkDescriptorBufferInfo resoDataBufferInfo{};
+		resoDataBufferInfo.buffer = m_PrevResovoirBuffer.GetBuffer();
+		resoDataBufferInfo.offset = 0;
+		resoDataBufferInfo.range = m_PrevResovoirBuffer.GetSize();
+
+		prevReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
+	}
+	prevReservoirBufferWrite.pTexelBufferView = nullptr;
+
+	///////////////////////////////////////////////////////////
+
 	std::vector<VkWriteDescriptorSet> descriptorWrites =
 	{
 		accelerationStructureWrite,
@@ -761,6 +839,9 @@ void RTXApp::UpdateRTDescriptorSets()
 		texturesBufferWrite,
 		//
 		bumpMapsBufferWrite,
+		//
+		currReservoirBufferWrite,
+		prevReservoirBufferWrite,
 	};
 
 	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);

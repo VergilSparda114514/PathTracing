@@ -4,7 +4,7 @@
 #include "framework/Application.h"
 #include "framework/Camera.h"
 
-#define NUM_SETS 5
+#define NUM_SETS 6
 
 #include "RTScene.h"
 #include "ShaderBindingTable.h"
@@ -75,6 +75,8 @@ private:
     Camera                          m_Camera{ 60.0f, 0.1f, 100.0f };
     VulkanHelpers::Buffer           m_LightingBuffer;
     VulkanHelpers::Buffer           m_PostProcessBuffer;
+    VulkanHelpers::Buffer           m_CurrResovoirBuffer;
+    VulkanHelpers::Buffer           m_PrevResovoirBuffer;
     uint32_t                        m_Frame = 0;
     uint32_t                        m_AccumulatedFrame = 0;
 };

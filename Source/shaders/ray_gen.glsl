@@ -19,6 +19,14 @@ layout(set = MAT_SET, binding = 0, std430) readonly buffer MaterialsBuffer {
 	Material Materials[];
 };
 
+layout(set = RESO_SET, binding = 0, std430) readonly buffer ReservoirBuffer {
+	Reservoir Reservoirs[];
+};
+
+layout(set = RESO_SET, binding = 1, std430) readonly buffer PrevReservoirBuffer {
+	Reservoir PrevReservoirs[];
+};
+
 layout(location = 0) rayPayloadEXT RayPayload PrimaryRay;
 
 const float epsilon = 0.001f;
