@@ -1,6 +1,9 @@
 #ifndef BSDF_H
 #define BSDF_H
 
+const float epsilon = 0.001f;
+const float PI = 3.13159265358979;
+
 float GGX(float alpha, vec3 N, vec3 H)
 {
 	float alpha2 = alpha * alpha;

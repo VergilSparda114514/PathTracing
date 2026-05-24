@@ -31,9 +31,6 @@ layout(set = RESO_SET, binding = 1, std430) buffer PrevReservoirBuffer {
 
 layout(location = 0) rayPayloadEXT RayPayload PrimaryRay;
 
-const float epsilon = 0.001f;
-const float PI = 3.13159265358979;
-
 uint seed = (gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x) * litParams.frame;
 
 vec3 CalcRayDir(vec2 screenUV)
