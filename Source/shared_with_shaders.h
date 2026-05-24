@@ -1,6 +1,7 @@
-#ifdef __cplusplus
+#ifndef SHARED_WITH_SHADERS_H
+#define SHARED_WITH_SHADERS_H
 
-#pragma once
+#ifdef __cplusplus
 
 // include vec & mat types (same namings as in GLSL)
 #include "framework/Common.h"
@@ -116,3 +117,5 @@ struct PostProcessParams
     float contrast cpp_default(1.05f);
     float saturation cpp_default(1.5f);
 };
+
+#endif
