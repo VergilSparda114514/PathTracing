@@ -66,6 +66,7 @@ private:
 
     // Rendering
     VulkanHelpers::Image            m_ResultImage;
+    VulkanHelpers::Image            m_KernelImage;
     VulkanHelpers::Image            m_PingImage;
     VulkanHelpers::Image            m_PongImage;
     VkDescriptorImageInfo           m_PingDescInfo;
