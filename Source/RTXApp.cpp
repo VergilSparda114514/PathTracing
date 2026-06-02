@@ -10,8 +10,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 static const std::filesystem::path s_ShadersFolder = "_data/shaders/";
-static const std::filesystem::path s_ScenesFolder = "_data/scenes/";
-static const std::filesystem::path s_EnvsFolder = "_data/envs/";
 
 static uint32_t NextPowerOf2(uint32_t n)
 {
@@ -40,8 +38,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Load(s_ScenesFolder / "sponzas/dabrovic_sponza.obj");
-	CreateScene();
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "sponzas/dabrovic_sponza.obj", "studio_garden_2k.jpg");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
@@ -301,27 +298,6 @@ void RTXApp::OnResize()
 }
 
 
-
-void RTXApp::CreateScene()
-{
-	m_Scene.BuildTLAS(m_Device, m_CommandPool, m_GraphicsQueue);
-
-	m_EnvTexture.Load((s_EnvsFolder / "studio_garden_2k.jpg").string().c_str());
-
-	VkImageSubresourceRange subresourceRange{};
-	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-	subresourceRange.baseArrayLayer = 0;
-	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
-	m_EnvTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_EnvTexture.GetFormat(), subresourceRange);
-	m_EnvTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-
-	m_EnvTextureDescInfo.sampler = m_EnvTexture.GetSampler();
-	m_EnvTextureDescInfo.imageView = m_EnvTexture.GetImageView();
-	m_EnvTextureDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-}
 
 void RTXApp::CreateBuffers()
 {
@@ -635,7 +611,7 @@ void RTXApp::UpdateRTDescriptorSets()
 	envTexturesWrite.dstArrayElement = 0;
 	envTexturesWrite.descriptorCount = 1;
 	envTexturesWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	envTexturesWrite.pImageInfo = &m_EnvTextureDescInfo;
+	envTexturesWrite.pImageInfo = &m_Scene.GetEnvTextureDescInfo();
 	envTexturesWrite.pBufferInfo = nullptr;
 	envTexturesWrite.pTexelBufferView = nullptr;
 

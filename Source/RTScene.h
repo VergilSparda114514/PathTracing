@@ -11,7 +11,7 @@ class RTScene
 public:
     void Destroy(VkDevice device);
 
-    void Load(const std::filesystem::path& scenePath);
+	void Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, std::filesystem::path scenePath, std::filesystem::path envPath);
 
     void BuildTLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue);
     void UpdateTLAS(VkCommandBuffer commandBuffer);
@@ -28,10 +28,15 @@ public:
     const std::vector<VkDescriptorBufferInfo>& GetFacesBufferInfos() const { return m_FacesBufferInfos; }
     const std::vector<VkDescriptorImageInfo>& GetTexturesInfos() const { return m_TexturesInfos; }
     const std::vector<VkDescriptorImageInfo>& GetBumpMapsInfos() const { return m_BumpMapsInfos; }
+	const VkDescriptorImageInfo& GetEnvTextureDescInfo() const { return m_EnvTextureDescInfo; }
+private:
+    void Load(const std::filesystem::path& scenePath);
 private:
     std::vector<RTMesh>                   m_Meshes;
     std::vector<RTMaterial>               m_Materials;
 
+    VulkanHelpers::Image            m_EnvTexture;
+    VkDescriptorImageInfo           m_EnvTextureDescInfo;
 
     VkAccelerationStructureGeometryInstancesDataKHR m_TLASInstances{};
     VkAccelerationStructureGeometryKHR m_TLASGeometry{};

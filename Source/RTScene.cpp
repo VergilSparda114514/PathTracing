@@ -7,6 +7,8 @@
 
 
 
+static const std::filesystem::path s_ScenesFolder = "_data/scenes/";
+static const std::filesystem::path s_EnvsFolder = "_data/envs/";
 static const std::filesystem::path s_DefaultTex = "_data/tex/default.jpg";
 
 
@@ -265,6 +267,28 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 		bumplMapInfo.imageView = mat.normalMap.GetImageView();
 		bumplMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
+}
+
+void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, std::filesystem::path scenePath, std::filesystem::path envPath)
+{
+	Load(s_ScenesFolder / scenePath);
+	BuildTLAS(device, cmdPool, queue);
+
+	m_EnvTexture.Load((s_EnvsFolder / envPath).string().c_str());
+
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	m_EnvTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_EnvTexture.GetFormat(), subresourceRange);
+	m_EnvTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+	m_EnvTextureDescInfo.sampler = m_EnvTexture.GetSampler();
+	m_EnvTextureDescInfo.imageView = m_EnvTexture.GetImageView();
+	m_EnvTextureDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
 
 void RTScene::BuildTLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)

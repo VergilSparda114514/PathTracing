@@ -28,7 +28,6 @@ private:
         ACES = 2,
     };
 private:
-    void CreateScene();
     void CreateBuffers();
     void CreateResultImage();
     void CreateRTDescriptorSetsLayouts();
@@ -61,8 +60,6 @@ private:
     ShaderBindingTable              m_SBT;
 
     RTScene                         m_Scene;
-    VulkanHelpers::Image            m_EnvTexture;
-    VkDescriptorImageInfo           m_EnvTextureDescInfo;
 
     // Rendering
     VulkanHelpers::Image            m_ResultImage;
