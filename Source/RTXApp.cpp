@@ -340,8 +340,8 @@ void RTXApp::CreateResultImage()
 
 	uint32_t size = m_Settings.resolutionX * m_Settings.resolutionY;
 
-	m_CurrResovoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	m_PrevResovoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	m_CurrReservoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	m_PrevReservoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
 void RTXApp::CreateRTDescriptorSetsLayouts()
@@ -768,9 +768,9 @@ void RTXApp::UpdateRTDescriptorSets()
 	currReservoirBufferWrite.pImageInfo = nullptr;
 	{
 		VkDescriptorBufferInfo resoDataBufferInfo{};
-		resoDataBufferInfo.buffer = m_CurrResovoirBuffer.GetBuffer();
+		resoDataBufferInfo.buffer = m_CurrReservoirBuffer.GetBuffer();
 		resoDataBufferInfo.offset = 0;
-		resoDataBufferInfo.range = m_CurrResovoirBuffer.GetSize();
+		resoDataBufferInfo.range = m_CurrReservoirBuffer.GetSize();
 
 		currReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
 	}
@@ -789,9 +789,9 @@ void RTXApp::UpdateRTDescriptorSets()
 	prevReservoirBufferWrite.pImageInfo = nullptr;
 	{
 		VkDescriptorBufferInfo resoDataBufferInfo{};
-		resoDataBufferInfo.buffer = m_PrevResovoirBuffer.GetBuffer();
+		resoDataBufferInfo.buffer = m_PrevReservoirBuffer.GetBuffer();
 		resoDataBufferInfo.offset = 0;
-		resoDataBufferInfo.range = m_PrevResovoirBuffer.GetSize();
+		resoDataBufferInfo.range = m_PrevReservoirBuffer.GetSize();
 
 		prevReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
 	}
