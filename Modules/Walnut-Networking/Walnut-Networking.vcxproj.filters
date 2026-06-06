@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{64FBD71A-50F4-F66C-7926-DCF1657ED678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows\Walnut">
+      <UniqueIdentifier>{4E1E616C-BA55-A903-C35F-0D272F16D0FC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows\Walnut\Networking">
+      <UniqueIdentifier>{A59A8D4A-91D6-90B4-FAE8-A8ABE64339CF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{56EB95D1-428D-C0A7-2B48-D4FB178947F8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Walnut">
+      <UniqueIdentifier>{006A7758-6C2A-F38E-3565-3C0CA1E4376B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Walnut\Networking">
+      <UniqueIdentifier>{17F37512-0318-C592-2C63-AA2218E7C3B0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Walnut\Networking\Client.h">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Walnut\Networking\NetworkingUtils.h">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Walnut\Networking\Server.h">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Platform\Windows\Walnut\Networking\WindowsNetworkingUtils.cpp">
+      <Filter>Platform\Windows\Walnut\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Walnut\Networking\Client.cpp">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Walnut\Networking\NetworkingUtils.cpp">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Walnut\Networking\Server.cpp">
+      <Filter>Source\Walnut\Networking</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
