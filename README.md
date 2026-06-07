@@ -23,6 +23,7 @@ A simple path tracing project implemented in Vulkan \& C++
 * [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
 
 ### TODO (by priority)
+* BSDF
 * ReSTIR GI
 * FFT Bloom
 * Docking
