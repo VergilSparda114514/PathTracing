@@ -9,6 +9,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <execution>
+
 static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
 
 static uint32_t NextPowerOf2(uint32_t n)
@@ -38,7 +40,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "sponzas/dabrovic_sponza.obj", "studio_garden_2k.jpg");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
@@ -246,7 +248,7 @@ void RTXApp::OnUIRender(float deltaTime)
 			ImGui::ColorEdit3("Base Reflectance", glm::value_ptr(material.baseReflectance));
 			ImGui::ColorEdit3("Diffuse Color", glm::value_ptr(material.diffuseColor));
 			ImGui::ColorEdit3("Specular Color", glm::value_ptr(material.specularColor));
-			ImGui::ColorEdit3("Absorption Color", glm::value_ptr(material.absorptionColor));
+			ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.transmissionColor));
 			ImGui::ColorEdit3("Emission", glm::value_ptr(material.emission), ImGuiColorEditFlags_::ImGuiColorEditFlags_HDR);
 
 			ImGui::Spacing();
@@ -532,8 +534,10 @@ void RTXApp::UpdateRTDescriptorSets()
 
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },		// Materials
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numMaterials }, // Texture for each material
-		
+
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numMaterials }, // bump map for each material
+
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 },		// Current and previous frame reservoirs
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};

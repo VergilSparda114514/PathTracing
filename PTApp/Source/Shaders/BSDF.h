@@ -2,22 +2,21 @@
 #define BSDF_H
 
 const float epsilon = 0.001f;
-const float PI = 3.13159265358979;
 
-float GGX(float alpha, vec3 N, vec3 H)
+float D(float alpha, vec3 N, vec3 H)
 {
 	float alpha2 = alpha * alpha;
-	float NdotH = max(dot(N, H), 0.0f);
+	float NdotH2 = pow(max(dot(N, H), 0.0), 2.0);
 
-	return alpha2 / max(PI * pow(NdotH * NdotH * (alpha2 - 1.0f) + 1.0f, 2.0f), epsilon);
+	return alpha2 / max(PI * pow(NdotH2 * (alpha2 - 1.0) + 1.0, 2.0), epsilon);
 }
 
 float G1(float alpha, vec3 N, vec3 X)
 {
-	float k = alpha / 2.0f;
-	float NdotX = max(dot(N, X), 0.0f);
+	float k = alpha / 2.0;
+	float NdotX = max(dot(N, X), 0.0);
 
-	return NdotX / max((NdotX * (1.0f - k) + k), epsilon);
+	return NdotX / max((NdotX * (1.0 - k) + k), epsilon);
 }
 
 float G(float alpha, vec3 N, vec3 V, vec3 L)
@@ -25,9 +24,19 @@ float G(float alpha, vec3 N, vec3 V, vec3 L)
 	return G1(alpha, N, V) * G1(alpha, N, L);
 }
 
-vec3 Fresnel(vec3 F0, vec3 V, vec3 H)
+vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 F, float alpha)
 {
-	return F0 + (vec3(1.0f) - F0) * pow(1.0f - max(dot(V, H), 0.0f), 5.0f);
+	vec3 H = normalize(V + L);
+
+	const float NdotV = max(dot(N, V), 0.0);
+	const float NdotL = max(dot(N, L), 0.0);
+
+	return D(alpha, N, H) * G(alpha, N, V, L) * F / max(4.0 * NdotV * NdotL, epsilon);
+}
+
+vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 F, float alpha)
+{
+	return vec3(1.0);
 }
 
 #endif

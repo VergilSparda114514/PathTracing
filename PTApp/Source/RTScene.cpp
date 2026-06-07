@@ -232,7 +232,7 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 			materialsBuffer[i].baseReflectance = vec3(0.04f);
 			materialsBuffer[i].diffuseColor = color;
 			materialsBuffer[i].specularColor = color;
-			materialsBuffer[i].absorptionColor = vec3(1.0f) - color;
+			materialsBuffer[i].transmissionColor = color;
 			memcpy(&materialsBuffer[i].emission, srcMat.emission, sizeof(vec3));
 		}
 

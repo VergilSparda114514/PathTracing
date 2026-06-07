@@ -1,6 +1,7 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 #include "../shared_with_shaders.h"
 #include "Random.h"
@@ -52,6 +53,7 @@ vec3 TraceRay()
 	const vec2 bottomRight = vec2(gl_LaunchSizeEXT.xy - 1.0f);
 	const vec2 uv = (curPixel / bottomRight) * 2.0f - 1.0f;
 	const bool center = vec2(gl_LaunchIDEXT.xy) == vec2(gl_LaunchSizeEXT.xy / 2.0f);
+	const uint idx = uint(gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x);
 
 	vec3 origin = camParams.camPos;
 	vec3 direction = CalcRayDir(uv);
@@ -97,24 +99,35 @@ vec3 TraceRay()
 		const vec3 hitPos = origin + direction * PrimaryRay.colorAndDist.w;
 
 		const Material material = Materials[PrimaryRay.matID];
-		const float value = Rand(seed);
+		const float metallicRnd = Rand(seed);
+		const float dielectricRnd = Rand(seed);
 
-		const bool metallic = value <= material.metallic;
-		const vec3 diffuse = RandS(seed) + hitNormal;
+		const bool metallic = metallicRnd <= material.metallic;
+		const float metallicFactor = (1.0f - material.roughness) * float(metallic);
+		const vec3 diffuse = RandH(hitNormal, seed);
 		
-		outgoingLight += material.emission * incomingLight;
-		incomingLight *= hitColor;
+		const float alpha = material.roughness * material.roughness;
+		const float cosTheta = abs(dot(-direction, hitNormal));
 
-		const vec3 F = vec3(pow((1.0f - material.ior) / (1.0f + material.ior), 2.0f));
+		const vec3 N = hitNormal;
+		const vec3 V = -direction;
+
+		const vec3 F0 = mix(vec3(pow((1.0f - material.ior) / (1.0f + material.ior), 2.0f)), material.baseReflectance, material.metallic);
+		const vec3 F = F0 + (vec3(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
+
 		const float reflectProb = dot(F, vec3(0.2126f, 0.7152f, 0.0722f));
 
-		if (value <= reflectProb || value > material.transmittance)
+		if (metallicRnd <= reflectProb || dielectricRnd > material.transmittance)
 		{
-			PrimaryRay.specular = metallic && material.roughness < 0.1f;
+			PrimaryRay.specular = material.roughness < 0.1f;
 
 			origin = hitPos + hitNormal * epsilon;
-			direction = mix(diffuse, reflect(direction, hitNormal), (1.0f - material.roughness) * float(metallic));
-			incomingLight *= mix(material.specularColor, material.diffuseColor, material.roughness * float(metallic));
+			direction = mix(diffuse, reflect(direction, LocalToWorld(SampleGGXVNDF(WorldToLocal(V, N), alpha, seed), N)), metallicFactor);
+
+			const vec3 L = direction;
+			const vec3 H = normalize(V + L);
+
+			incomingLight *= mix(material.diffuseColor, material.specularColor, metallicFactor);
 		}
 
 		else
@@ -129,7 +142,7 @@ vec3 TraceRay()
 				refrNormal = -hitNormal;
 				refrEta = material.ior;
 
-				incomingLight *= exp(-PrimaryRay.colorAndDist.w * material.absorptionColor * material.absorptionStrength);
+				incomingLight *= exp(-PrimaryRay.colorAndDist.w * (1.0 - material.transmissionColor) * material.absorptionStrength);
 			}
 
 			vec3 refrDirection = refract(direction, refrNormal, refrEta);
@@ -144,6 +157,24 @@ vec3 TraceRay()
 			origin = hitPos + refrDirection * epsilon;
 			direction = refrDirection;
 		}
+
+		const float NdotL = abs(dot(hitNormal, direction));
+		const float pdf = NdotL / PI;
+
+		outgoingLight += material.emission * incomingLight;
+		incomingLight *= hitColor / PI * NdotL / pdf;
+
+		// Russian Roulette
+		
+		float p = max(incomingLight.r, max(incomingLight.g, incomingLight.b));
+		p = clamp(p, epsilon, 1.0);
+		
+		if (Rand(seed) > p)
+		{
+		    break;
+		}
+		
+		incomingLight /= p;
 	}
 
 	return outgoingLight;

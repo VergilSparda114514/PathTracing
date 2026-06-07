@@ -1,7 +1,7 @@
 # Blender 4.4.3 MTL File: 'None'
 # www.blender.org
 
-newmtl Material.001
+newmtl Light
 Kd 0.800000 0.800000 0.800000
 Ks 0.500000 0.500000 0.500000
 Ke 5.000000 5.000000 5.000000
