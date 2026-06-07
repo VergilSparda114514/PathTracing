@@ -32,7 +32,7 @@ void RTXApp::InitSettings()
 	m_Settings.supportDescriptorIndexing = true;
 	m_Settings.resolutionX = 1980;
 	m_Settings.resolutionY = 1080;
-	m_Settings.supportDocking = false;
+	m_Settings.supportDocking = false; // Don't try, won't work
 }
 
 void RTXApp::InitApp()

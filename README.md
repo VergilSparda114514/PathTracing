@@ -22,3 +22,8 @@ A simple path tracing project implemented in Vulkan \& C++
 * [GLM](https://github.com/g-truc/glm)
 * [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
 
+### TODO (by priority)
+* ReSTIR GI
+* FFT Bloom
+* Docking
+
