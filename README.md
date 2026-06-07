@@ -26,4 +26,5 @@ A simple path tracing project implemented in Vulkan \& C++
 * ReSTIR GI
 * FFT Bloom
 * Docking
+* Networking
 
