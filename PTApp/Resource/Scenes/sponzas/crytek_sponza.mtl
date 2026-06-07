@@ -1,0 +1,402 @@
+# Blender 4.4.3 MTL File: 'None'
+# www.blender.org
+
+newmtl Light.003
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 100.000000 100.000000 100.000000
+Ni 1.450000
+d 1.000000
+illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Material__25
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/lion.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/lion_bump.png
+
+newmtl Material__298
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/background.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/background_bump.png
+
+newmtl Material__47
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Material__57
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/vase_plant.png
+map_d C:/Users/ZhuanZ1/Downloads/sponza/textures/vase_plant_mask.png
+
+newmtl arch
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.800000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_arch_diff.png
+
+newmtl bricks
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/spnza_bricks_a_diff.png
+map_Ks C:/Users/ZhuanZ1/Downloads/sponza/textures/spnza_bricks_a_spec.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/spnza_bricks_a_bump.png
+
+newmtl ceiling
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_ceiling_a_diff.png
+
+newmtl chain
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/chain_texture.png
+map_d C:/Users/ZhuanZ1/Downloads/sponza/textures/chain_texture_mask.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/chain_texture_bump.png
+
+newmtl column_a
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_column_a_diff.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/sponza_column_a_bump.png
+
+newmtl column_b
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_column_b_diff.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/sponza_column_b_bump.png
+
+newmtl column_c
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_column_c_diff.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/sponza_column_c_bump.png
+
+newmtl details
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_details_diff.png
+
+newmtl fabric_a
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_fabric_diff.png
+
+newmtl fabric_c
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_curtain_diff.png
+
+newmtl fabric_d
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_fabric_blue_diff.png
+
+newmtl fabric_e
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_fabric_green_diff.png
+
+newmtl fabric_f
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_curtain_green_diff.png
+
+newmtl fabric_g
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.800000
+illum 1
+Pr 0.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_curtain_blue_diff.png
+
+newmtl flagpole
+Ks 0.050000 0.050000 0.050000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_flagpole_diff.png
+
+newmtl floor
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.735425
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_floor_a_diff.png
+map_Ks C:/Users/ZhuanZ1/Downloads/sponza/textures/floor_gloss.png
+
+newmtl leaf
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_thorn_diff.png
+map_d C:/Users/ZhuanZ1/Downloads/sponza/textures/sponza_thorn_mask.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/sponza_thorn_bump.png
+
+newmtl roof
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/sponza_roof_diff.png
+
+newmtl vase
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/vase_dif.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/vase_bump.png
+
+newmtl vase_hanging
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.776393
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/vase_hanging.png
+map_Ks C:/Users/ZhuanZ1/Downloads/sponza/textures/vase_hanging.png
+
+newmtl vase_round
+Ks 0.010000 0.010000 0.010000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd D:/Visual Studio/VulkanRT/_data/tex/crytek_sponza/vase_round.png
+map_Bump C:/Users/ZhuanZ1/Downloads/sponza/textures/vase_round_bump.png
