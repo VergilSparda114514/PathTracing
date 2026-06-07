@@ -25,8 +25,9 @@ project "ImGui"
 
     includedirs
     {
+        "./",
         "../GLFW/include",
-       "%{IncludeDir.VulkanSDK}",
+        "%{IncludeDir.VulkanSDK}",
     }
 
 	filter "system:windows"
