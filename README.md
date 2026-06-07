@@ -20,5 +20,5 @@ A simple path tracing project implemented in Vulkan \& C++
 * [GLFW](https://github.com/glfw/glfw)
 * [stb\_image](https://github.com/nothings/stb)
 * [GLM](https://github.com/g-truc/glm)
-* [Tiny Obj Loader](https://github.com/tinyobjloader/tinyobjloader)
+* [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
 
