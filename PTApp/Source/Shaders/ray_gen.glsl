@@ -169,7 +169,7 @@ vec3 TraceRay()
 		// Russian Roulette
 		
 		float p = max(incomingLight.r, max(incomingLight.g, incomingLight.b));
-		p = clamp(p, epsilon, 1.0);
+		p = clamp(p, epsilon, 1.0 - epsilon);
 		
 		if (Rand(seed) > p)
 		{

@@ -9,8 +9,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <execution>
-
 static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
 
 static uint32_t NextPowerOf2(uint32_t n)
@@ -29,7 +27,7 @@ void RTXApp::InitSettings()
 	m_Settings.name = "Ray Tracing";
 	m_Settings.fullscreen = false;
 	m_Settings.enableValidation = true;
-	m_Settings.enableVSync = true;
+	m_Settings.enableVSync = false;
 	m_Settings.supportRaytracing = true;
 	m_Settings.supportDescriptorIndexing = true;
 	m_Settings.resolutionX = 1980;
@@ -40,7 +38,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/cornell_box.obj", "black_box.jpg");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();

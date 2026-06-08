@@ -122,7 +122,16 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 
 					positions[vIdx] = *reinterpret_cast<vec3*>(&attrib.vertices[3 * i.vertex_index]);
 					attribs[vIdx].normal = *reinterpret_cast<vec3*>(&attrib.normals[3 * i.normal_index]);
-					attribs[vIdx].uv = *reinterpret_cast<vec2*>(&attrib.texcoords[2 * i.texcoord_index]);
+
+					try
+					{
+						attribs[vIdx].uv = *reinterpret_cast<vec2*>(&attrib.texcoords.at(2 * i.texcoord_index));
+					}
+
+					catch (const std::exception&)
+					{
+						attribs[vIdx].uv = vec2(0.0f, 0.0f);
+					}
 				}
 
 				const uint32_t a = static_cast<uint32_t>(3 * face + 0);
