@@ -114,17 +114,20 @@ vec3 TraceRay()
 		const vec3 F0 = mix(vec3(pow((1.0f - material.ior) / (1.0f + material.ior), 2.0f)), material.baseReflectance, material.metallic);
 		const vec3 F = F0 + (vec3(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
 
-		const float reflectProb = dot(F, vec3(0.2126f, 0.7152f, 0.0722f));
+		const float reflectProb = Luminance(F);
 
 		if (metallicRnd <= reflectProb || dielectricRnd > material.transmittance)
 		{
 			PrimaryRay.specular = material.roughness < 0.1f;
 
-			origin = hitPos + hitNormal * epsilon;
-			direction = mix(diffuse, reflect(direction, LocalToWorld(SampleGGXVNDF(WorldToLocal(V, N), alpha, seed), N)), metallicFactor);
+			const vec3 localV = WorldToLocal(V, N);
+			vec3 H = SampleGGXVNDF(localV, alpha, seed);
+			H = LocalToWorld(H, N);
 
-			const vec3 L = direction;
-			const vec3 H = normalize(V + L);
+			const vec3 specular = reflect(direction, hitNormal);
+
+			origin = hitPos + hitNormal * epsilon;
+			direction = mix(diffuse, specular, metallicFactor);
 
 			incomingLight *= mix(material.diffuseColor, material.specularColor, metallicFactor);
 		}

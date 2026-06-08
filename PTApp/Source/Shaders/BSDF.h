@@ -24,6 +24,11 @@ float G(float alpha, vec3 N, vec3 V, vec3 L)
 	return G1(alpha, N, V) * G1(alpha, N, L);
 }
 
+float Luminance(vec3 color)
+{
+	return dot(color, vec3(0.2126, 0.7152, 0.0722));
+}
+
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 F, float alpha)
 {
 	vec3 H = normalize(V + L);
