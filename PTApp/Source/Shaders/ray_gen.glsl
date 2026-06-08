@@ -53,7 +53,6 @@ vec3 TraceRay()
 	const vec2 bottomRight = vec2(gl_LaunchSizeEXT.xy - 1.0f);
 	const vec2 uv = (curPixel / bottomRight) * 2.0f - 1.0f;
 	const bool center = vec2(gl_LaunchIDEXT.xy) == vec2(gl_LaunchSizeEXT.xy / 2.0f);
-	const uint idx = uint(gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x);
 
 	vec3 origin = camParams.camPos;
 	vec3 direction = CalcRayDir(uv);
