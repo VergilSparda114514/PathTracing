@@ -93,7 +93,7 @@ vec3 SampleGGXVNDF(vec3 V, float alpha, inout uint state)
 	float t1 = r * cos(phi);
 	float t2 = r * sin(phi);
 	float s = 0.5 * (1.0 + Vh.z);
-	t2 = mix(sqrt(1.0 - t1 * t1), t2, s);
+	t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
 	// Section 4.3: reprojection onto hemisphere
 	vec3 Nh = t1 * T1 + t2 * T2 + sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2)) * Vh;
 	// Section 3.4: transforming the normal back to the ellipsoid configuration
