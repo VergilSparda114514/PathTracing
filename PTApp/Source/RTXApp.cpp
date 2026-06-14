@@ -38,7 +38,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/cornell_box.obj", "black_box.jpg");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();

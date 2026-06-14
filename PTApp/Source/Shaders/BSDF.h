@@ -11,7 +11,7 @@ float D(float alpha, vec3 N, vec3 H)
 	return alpha2 / max(PI * pow(NdotH2 * (alpha2 - 1.0) + 1.0, 2.0), epsilon);
 }
 
-float G1(float alpha, vec3 N, vec3 X)
+float G1(float alpha, vec3 X, vec3 N)
 {
 	float k = alpha / 2.0;
 	float NdotX = max(dot(N, X), 0.0);
@@ -19,9 +19,9 @@ float G1(float alpha, vec3 N, vec3 X)
 	return NdotX / max((NdotX * (1.0 - k) + k), epsilon);
 }
 
-float G(float alpha, vec3 N, vec3 V, vec3 L)
+float G(float alpha, vec3 V, vec3 N, vec3 L)
 {
-	return G1(alpha, N, V) * G1(alpha, N, L);
+	return G1(alpha, V, N) * G1(alpha, N, L);
 }
 
 float Luminance(vec3 color)
@@ -29,19 +29,49 @@ float Luminance(vec3 color)
 	return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 F, float alpha)
+vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha)
 {
-	vec3 H = normalize(V + L);
-
 	const float NdotV = max(dot(N, V), 0.0);
 	const float NdotL = max(dot(N, L), 0.0);
 
-	return D(alpha, N, H) * G(alpha, N, V, L) * F / max(4.0 * NdotV * NdotL, epsilon);
+	vec3 numer = D(alpha, N, H) * G(alpha, V, N, L) * F;
+	float denom = 4.0 * NdotV * NdotL;
+
+	return numer / max(denom, epsilon);
 }
 
-vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 F, float alpha)
+float GGXVNDFPDF(vec3 V, vec3 N, vec3 H, float alpha)
 {
-	return vec3(1.0);
+	float NdotH = max(dot(N, H), 0.0);
+	float VdotH = max(dot(V, H), 0.0);
+
+	return D(alpha, N, H) * G1(alpha, N, V) * NdotH / max(4.0 * VdotH, epsilon);
+}
+
+vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha, float etaI, float etaT)
+{
+	const float NdotV = abs(dot(N, V));
+	const float NdotL = abs(dot(N, L));
+	const float VdotH = abs(dot(V, H));
+	const float LdotH = abs(dot(L, H));
+
+	vec3 numer = D(alpha, N, H) * G(alpha, V, N, L) * (1.0 - F) * pow(etaT, 2.0) * VdotH * LdotH;
+	float denom = NdotV * NdotL * pow(etaI * VdotH + etaT * LdotH, 2.0);
+
+	return numer / max(denom, epsilon);
+}
+
+float GGXBTDFPDF(vec3 V, vec3 N, vec3 L, vec3 H, float alpha, float eta)
+{
+	float NdotH = abs(dot(N, H));
+	float VdotH = abs(dot(V, H));
+	float LdotH = abs(dot(L, H));
+
+	float denom = eta * LdotH + VdotH;
+
+	float dwh_dwi = (eta * eta * LdotH) / max(denom * denom, epsilon);
+
+	return D(alpha, N, H) * G1(alpha, N, V) * NdotH * dwh_dwi;
 }
 
 #endif
