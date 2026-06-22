@@ -45,7 +45,7 @@ float GGXVNDFPDF(vec3 V, vec3 N, vec3 H, float alpha)
 	float NdotH = max(dot(N, H), 0.0);
 	float VdotH = max(dot(V, H), 0.0);
 
-	return D(alpha, N, H) * G1(alpha, N, V) * NdotH / max(4.0 * VdotH, epsilon);
+	return D(alpha, N, H) * G1(alpha, V, N) * NdotH / max(4.0 * VdotH, epsilon);
 }
 
 vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha, float etaI, float etaT)
