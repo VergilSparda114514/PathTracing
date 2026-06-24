@@ -118,7 +118,7 @@ vec3 TraceRay()
 		const vec3 F = F0 + (vec3(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
 
 		float reflectProb = Luminance(F);
-		float refractProb = (1.0 - reflectProb) * material.transmittance;
+		float refractProb = 1.0 - reflectProb;
 
 		const float sum = reflectProb + refractProb;
 
@@ -129,7 +129,7 @@ vec3 TraceRay()
 		float pdf = 0.0f;
 		float branchPDF = 0.0f;
 
-		if (metallicRnd <= reflectProb)
+		if (metallicRnd <= reflectProb || dielectricRnd > material.transmittance)
 		{
 			PrimaryRay.specular = material.roughness < 0.1f;
 
@@ -141,29 +141,29 @@ vec3 TraceRay()
 			}
 
 			origin = hitPos + hitNormal * epsilon;
-			direction = specular;
+			direction = mix(diffuse, specular, (1.0 - material.roughness) * material.metallic);
 
-			bsdf = BRDF(V, N, direction, F, alpha);
+			const float NdotL = abs(dot(hitNormal, direction));
+
+			bsdf = BRDF(V, N, direction, H, F, alpha);
 			pdf = GGXVNDFPDF(V, N, H, alpha);
 			branchPDF = reflectProb;
 
-			incomingLight *= material.specularColor;
+			incomingLight *= mix(material.diffuseColor, material.specularColor, (1.0 - material.roughness) * material.metallic);
 		}
 
 		else
 		{
 			PrimaryRay.specular = material.smoothness > 0.9f;
 
-			vec3 refrNormal = H;
-			float refrEta = 1.0f / material.ior;
+			vec3 refrNormal = N;
 
 			float etaI = 1.0f;
 			float etaT = material.ior;
 
 			if (dot(hitNormal, direction) > 0.0f)
 			{
-				refrNormal = -H;
-				refrEta = material.ior;
+				refrNormal = -N;
 
 				etaI = material.ior;
 				etaT = 1.0f;
@@ -171,7 +171,9 @@ vec3 TraceRay()
 				incomingLight *= exp(-PrimaryRay.colorAndDist.w * (1.0 - material.transmissionColor) * material.absorptionStrength);
 			}
 
-			vec3 refrDirection = refract(direction, refrNormal, refrEta);
+			float eta = etaI / etaT;
+
+			vec3 refrDirection = refract(direction, refrNormal, eta);
 			
 			if (length(refrDirection) <= epsilon)
 			{
@@ -186,34 +188,18 @@ vec3 TraceRay()
 			}
 
 			origin = hitPos + refrDirection * epsilon;
-			direction = refrDirection;
+			direction = mix(diffuse, refrDirection, material.smoothness);
 
 			bsdf = BTDF(V, N, direction, Ht, F, alpha, etaI, etaT);
-			pdf = GGXBTDFPDF(V, N, direction, Ht, alpha, refrEta);
+			pdf = GGXBTDFPDF(V, N, direction, Ht, alpha, eta);
 			branchPDF = refractProb;
-
-			incomingLight *= material.transmissionColor;
-		}
-
-		if (pdf <= 0.0)
-		{
-		    return vec3(1,0,0);
-		}
-		
-		if (any(isnan(bsdf)))
-		{
-		    return vec3(0,1,0);
-		}
-		
-		if (any(isinf(bsdf)))
-		{
-		    return vec3(0,0,1);
 		}
 
 		const float NdotL = abs(dot(hitNormal, direction));
+		pdf = NdotL / PI;
 
 		outgoingLight += material.emission * incomingLight;
-		incomingLight *= bsdf * NdotL / max(pdf * branchPDF, epsilon);
+		incomingLight *= hitColor / PI * NdotL / max(pdf, epsilon2);
 
 		// Russian Roulette
 		

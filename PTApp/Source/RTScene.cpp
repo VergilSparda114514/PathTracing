@@ -3,7 +3,12 @@
 #include "shared_with_shaders.h"
 #include "VKKHR.h"
 
-#include "tiny_obj_loader.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#ifndef _DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
+#define TINYOBJLOADER_USE_MULTITHREADING
+#define TINYOBJLOADER_USE_SIMD
+#endif
+#include <tiny_obj_loader.h>
 
 
 
@@ -70,14 +75,19 @@ void RTScene::Destroy(VkDevice device)
 
 void RTScene::Load(const std::filesystem::path& scenePath)
 {
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
+	tinyobj::basic_attrib_t attrib;
+	std::vector<tinyobj::basic_shape_t<>> shapes;
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 
 	std::filesystem::path baseDir = scenePath.parent_path();
 
-	const bool result = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, scenePath.string().c_str(), baseDir.string().c_str(), true);
+	tinyobj::OptLoadConfig loadConfig{};
+	loadConfig.triangulate = true;
+	loadConfig.num_threads = -1;
+
+	const bool result = tinyobj::LoadObjOpt(&attrib, &shapes, &materials, &warn, &err, scenePath.string().c_str(), baseDir.string().c_str(), loadConfig);
+
 	if (result)
 	{
 		m_Meshes.resize(shapes.size());
@@ -89,7 +99,7 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 		for (size_t meshIdx = 0; meshIdx < shapes.size(); meshIdx++)
 		{
 			RTMesh& mesh = m_Meshes[meshIdx];
-			const tinyobj::shape_t& shape = shapes[meshIdx];
+			const auto& shape = shapes[meshIdx];
 
 			mesh.name = shape.name;
 
@@ -144,7 +154,7 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 
 				faces[face].face = uvec3(a, b, c);
 				faces[face].matID = shape.mesh.material_ids[face];
-			}
+			};
 
 			ComputeTangent(attribs, positions, numVertices, indices, numFaces);
 
@@ -201,7 +211,7 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 					dstMat.bumpMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 				}
 
-				else if(dstMat.bumpMap.Load(s_DefaultTex.string().c_str()))
+				else if (dstMat.bumpMap.Load(s_DefaultTex.string().c_str()))
 				{
 					dstMat.bumpMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.bumpMap.GetFormat(), subresourceRange);
 					dstMat.bumpMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);

@@ -3,10 +3,6 @@
 #include "shared_with_shaders.h"
 #include "VKKHR.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-#include <stb_image.h>
-
 #include <glm/gtc/type_ptr.hpp>
 
 static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
@@ -579,15 +575,15 @@ void RTXApp::UpdateRTDescriptorSets()
 
 	VkWriteDescriptorSet accelerationStructureWrite{};
 	accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	{
-		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
-		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-		descriptorAccelerationStructureInfo.pNext = nullptr;
-		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-		descriptorAccelerationStructureInfo.pAccelerationStructures = &m_Scene.GetTLAS().accelerationStructure;
 
-		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo; // Notice that pNext is assigned here!
-	}
+	VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+	descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	descriptorAccelerationStructureInfo.pNext = nullptr;
+	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+	descriptorAccelerationStructureInfo.pAccelerationStructures = &m_Scene.GetTLAS().accelerationStructure;
+
+	accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo; // Notice that pNext is assigned here!
+
 	accelerationStructureWrite.dstSet = m_RTDescriptorSets[SCENE_SET];
 	accelerationStructureWrite.dstBinding = SCENE_AS_BINDING;
 	accelerationStructureWrite.dstArrayElement = 0;
@@ -622,14 +618,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	litDataBufferWrite.descriptorCount = 1;
 	litDataBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	litDataBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo litDataBufferInfo{};
-		litDataBufferInfo.buffer = m_LightingBuffer.GetBuffer();
-		litDataBufferInfo.offset = 0;
-		litDataBufferInfo.range = m_LightingBuffer.GetSize();
 
-		litDataBufferWrite.pBufferInfo = &litDataBufferInfo;
-	}
+	VkDescriptorBufferInfo litDataBufferInfo{};
+	litDataBufferInfo.buffer = m_LightingBuffer.GetBuffer();
+	litDataBufferInfo.offset = 0;
+	litDataBufferInfo.range = m_LightingBuffer.GetSize();
+
+	litDataBufferWrite.pBufferInfo = &litDataBufferInfo;
+
 	litDataBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
@@ -643,14 +639,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	camDataBufferWrite.descriptorCount = 1;
 	camDataBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	camDataBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo camDataBufferInfo{};
-		camDataBufferInfo.buffer = m_Camera.GetBuffer().GetBuffer();
-		camDataBufferInfo.offset = 0;
-		camDataBufferInfo.range = m_Camera.GetBuffer().GetSize();
 
-		camDataBufferWrite.pBufferInfo = &camDataBufferInfo;
-	}
+	VkDescriptorBufferInfo camDataBufferInfo{};
+	camDataBufferInfo.buffer = m_Camera.GetBuffer().GetBuffer();
+	camDataBufferInfo.offset = 0;
+	camDataBufferInfo.range = m_Camera.GetBuffer().GetSize();
+
+	camDataBufferWrite.pBufferInfo = &camDataBufferInfo;
+
 	camDataBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
@@ -663,14 +659,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	resultImageWrite.dstArrayElement = 0;
 	resultImageWrite.descriptorCount = 1;
 	resultImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	{
-		VkDescriptorImageInfo descriptorOutputImageInfo{};
-		descriptorOutputImageInfo.sampler = VK_NULL_HANDLE;
-		descriptorOutputImageInfo.imageView = m_ResultImage.GetImageView();
-		descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-		resultImageWrite.pImageInfo = &descriptorOutputImageInfo;
-	}
+	VkDescriptorImageInfo descriptorOutputImageInfo{};
+	descriptorOutputImageInfo.sampler = VK_NULL_HANDLE;
+	descriptorOutputImageInfo.imageView = m_ResultImage.GetImageView();
+	descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+	resultImageWrite.pImageInfo = &descriptorOutputImageInfo;
+
 	resultImageWrite.pBufferInfo = nullptr;
 	resultImageWrite.pTexelBufferView = nullptr;
 
@@ -713,14 +709,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	materialsBufferWrite.descriptorCount = 1;
 	materialsBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	materialsBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo matDataBufferInfo{};
-		matDataBufferInfo.buffer = m_Scene.GetMaterialsBuffer().GetBuffer();
-		matDataBufferInfo.offset = 0;
-		matDataBufferInfo.range = m_Scene.GetMaterialsBuffer().GetSize();
 
-		materialsBufferWrite.pBufferInfo = &matDataBufferInfo;
-	}
+	VkDescriptorBufferInfo matDataBufferInfo{};
+	matDataBufferInfo.buffer = m_Scene.GetMaterialsBuffer().GetBuffer();
+	matDataBufferInfo.offset = 0;
+	matDataBufferInfo.range = m_Scene.GetMaterialsBuffer().GetSize();
+
+	materialsBufferWrite.pBufferInfo = &matDataBufferInfo;
+
 	materialsBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
@@ -762,14 +758,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	currReservoirBufferWrite.descriptorCount = 1;
 	currReservoirBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	currReservoirBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo resoDataBufferInfo{};
-		resoDataBufferInfo.buffer = m_CurrReservoirBuffer.GetBuffer();
-		resoDataBufferInfo.offset = 0;
-		resoDataBufferInfo.range = m_CurrReservoirBuffer.GetSize();
 
-		currReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
-	}
+	VkDescriptorBufferInfo currResoDataBufferInfo{};
+	currResoDataBufferInfo.buffer = m_CurrReservoirBuffer.GetBuffer();
+	currResoDataBufferInfo.offset = 0;
+	currResoDataBufferInfo.range = m_CurrReservoirBuffer.GetSize();
+
+	currReservoirBufferWrite.pBufferInfo = &currResoDataBufferInfo;
+
 	currReservoirBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
@@ -783,14 +779,14 @@ void RTXApp::UpdateRTDescriptorSets()
 	prevReservoirBufferWrite.descriptorCount = 1;
 	prevReservoirBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	prevReservoirBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo resoDataBufferInfo{};
-		resoDataBufferInfo.buffer = m_PrevReservoirBuffer.GetBuffer();
-		resoDataBufferInfo.offset = 0;
-		resoDataBufferInfo.range = m_PrevReservoirBuffer.GetSize();
 
-		prevReservoirBufferWrite.pBufferInfo = &resoDataBufferInfo;
-	}
+	VkDescriptorBufferInfo prevResoDataBufferInfo{};
+	prevResoDataBufferInfo.buffer = m_PrevReservoirBuffer.GetBuffer();
+	prevResoDataBufferInfo.offset = 0;
+	prevResoDataBufferInfo.range = m_PrevReservoirBuffer.GetSize();
+
+	prevReservoirBufferWrite.pBufferInfo = &prevResoDataBufferInfo;
+
 	prevReservoirBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
@@ -1010,14 +1006,14 @@ void RTXApp::UpdateComputeDescriptorSets()
 	resultImageWrite.dstArrayElement = 0;
 	resultImageWrite.descriptorCount = 1;
 	resultImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	{
-		VkDescriptorImageInfo descriptorOutputImageInfo{};
-		descriptorOutputImageInfo.sampler = VK_NULL_HANDLE;
-		descriptorOutputImageInfo.imageView = m_ResultImage.GetImageView();
-		descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-		resultImageWrite.pImageInfo = &descriptorOutputImageInfo;
-	}
+	VkDescriptorImageInfo resultImageDescriptorInfo{};
+	resultImageDescriptorInfo.sampler = VK_NULL_HANDLE;
+	resultImageDescriptorInfo.imageView = m_ResultImage.GetImageView();
+	resultImageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+	resultImageWrite.pImageInfo = &resultImageDescriptorInfo;
+
 	resultImageWrite.pBufferInfo = nullptr;
 	resultImageWrite.pTexelBufferView = nullptr;
 
@@ -1031,14 +1027,14 @@ void RTXApp::UpdateComputeDescriptorSets()
 	finalImageWrite.dstArrayElement = 0;
 	finalImageWrite.descriptorCount = 1;
 	finalImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	{
-		VkDescriptorImageInfo descriptorOutputImageInfo{};
-		descriptorOutputImageInfo.sampler = VK_NULL_HANDLE;
-		descriptorOutputImageInfo.imageView = m_OffscreenImage.GetImageView();
-		descriptorOutputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-		finalImageWrite.pImageInfo = &descriptorOutputImageInfo;
-	}
+	VkDescriptorImageInfo finalImageDescriptorInfo{};
+	finalImageDescriptorInfo.sampler = VK_NULL_HANDLE;
+	finalImageDescriptorInfo.imageView = m_OffscreenImage.GetImageView();
+	finalImageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+	finalImageWrite.pImageInfo = &finalImageDescriptorInfo;
+
 	finalImageWrite.pBufferInfo = nullptr;
 	finalImageWrite.pTexelBufferView = nullptr;
 
@@ -1053,14 +1049,14 @@ void RTXApp::UpdateComputeDescriptorSets()
 	ppDataBufferWrite.descriptorCount = 1;
 	ppDataBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ppDataBufferWrite.pImageInfo = nullptr;
-	{
-		VkDescriptorBufferInfo ppDataBufferInfo{};
-		ppDataBufferInfo.buffer = m_PostProcessBuffer.GetBuffer();
-		ppDataBufferInfo.offset = 0;
-		ppDataBufferInfo.range = m_PostProcessBuffer.GetSize();
 
-		ppDataBufferWrite.pBufferInfo = &ppDataBufferInfo;
-	}
+	VkDescriptorBufferInfo ppDataBufferInfo{};
+	ppDataBufferInfo.buffer = m_PostProcessBuffer.GetBuffer();
+	ppDataBufferInfo.offset = 0;
+	ppDataBufferInfo.range = m_PostProcessBuffer.GetSize();
+
+	ppDataBufferWrite.pBufferInfo = &ppDataBufferInfo;
+
 	ppDataBufferWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////

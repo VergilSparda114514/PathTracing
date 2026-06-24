@@ -9,24 +9,17 @@
 #include "RTScene.h"
 #include "ShaderBindingTable.h"
 
-class RTXApp : public Application
+class RTXApp final : public Application
 {
 protected:
-    virtual void InitSettings() override;
-    virtual void InitApp() override;
-    virtual void FreeResources() override;
-    virtual void FillCommandBuffer(VkCommandBuffer commandBuffer, size_t imageIndex) override;
+    void InitSettings() override;
+    void InitApp() override;
+    void FreeResources() override;
+    void FillCommandBuffer(VkCommandBuffer commandBuffer, size_t imageIndex) override;
 
-    virtual void OnUIRender(float deltaTime) override;
-    virtual void OnUpdate(size_t imageIndex, float dt) override;
-    virtual void OnResize() override;
-private:
-    enum class ToneMappingMode
-    {
-        None = 0,
-        Neutral = 1,
-        ACES = 2,
-    };
+    void OnUIRender(float deltaTime) override;
+    void OnUpdate(size_t imageIndex, float dt) override;
+    void OnResize() override;
 private:
     void CreateBuffers();
     void CreateResultImage();

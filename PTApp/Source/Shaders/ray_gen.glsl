@@ -108,11 +108,8 @@ vec3 TraceRay()
 		const vec3 localV = WorldToLocal(V, N);
 		
 		const float alpha = max(material.roughness * material.roughness, epsilon);
-
-		vec3 H = SampleGGXVNDF(localV, alpha, seed);
-		H = LocalToWorld(H, N);
 		
-		const float cosTheta = max(dot(V, H), 0.0);
+		const float cosTheta = abs(dot(hitNormal, direction));
 
 		const vec3 F0 = mix(vec3(pow((1.0f - material.ior) / (1.0f + material.ior), 2.0f)), material.baseReflectance, material.metallic);
 		const vec3 F = F0 + (vec3(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
@@ -132,6 +129,9 @@ vec3 TraceRay()
 		if (metallicRnd <= reflectProb || dielectricRnd > material.transmittance)
 		{
 			PrimaryRay.specular = material.roughness < 0.1f;
+
+			vec3 H = SampleGGXVNDF(localV, alpha, seed);
+			H = LocalToWorld(H, N);
 
 			const vec3 specular = reflect(direction, H);
 
@@ -180,18 +180,18 @@ vec3 TraceRay()
 				refrDirection = reflect(direction, refrNormal);
 			}
 
-			vec3 Ht = normalize(etaI * V + etaT * refrDirection);
+			vec3 H = normalize(etaI * V + etaT * refrDirection);
 
-			if (dot(N, Ht) < 0.0)
+			if (dot(N, H) < 0.0)
 			{
-			    Ht = -Ht;
+			    H = -H;
 			}
 
 			origin = hitPos + refrDirection * epsilon;
 			direction = mix(diffuse, refrDirection, material.smoothness);
 
-			bsdf = BTDF(V, N, direction, Ht, F, alpha, etaI, etaT);
-			pdf = GGXBTDFPDF(V, N, direction, Ht, alpha, eta);
+			bsdf = BTDF(V, N, direction, H, F, alpha, etaI, etaT);
+			pdf = GGXBTDFPDF(V, N, direction, H, alpha, eta);
 			branchPDF = refractProb;
 		}
 
@@ -199,7 +199,7 @@ vec3 TraceRay()
 		pdf = NdotL / PI;
 
 		outgoingLight += material.emission * incomingLight;
-		incomingLight *= hitColor / PI * NdotL / max(pdf, epsilon);
+		incomingLight *= hitColor / PI * NdotL / max(pdf, epsilon2);
 
 		// Russian Roulette
 		

@@ -2,13 +2,14 @@
 #define BSDF_H
 
 const float epsilon = 0.001f;
+const float epsilon2 = epsilon * epsilon;
 
 float D(float alpha, vec3 N, vec3 H)
 {
 	float alpha2 = alpha * alpha;
 	float NdotH2 = pow(max(dot(N, H), 0.0), 2.0);
 
-	return alpha2 / max(PI * pow(NdotH2 * (alpha2 - 1.0) + 1.0, 2.0), epsilon);
+	return alpha2 / max(PI * pow(NdotH2 * (alpha2 - 1.0) + 1.0, 2.0), epsilon2);
 }
 
 float G1(float alpha, vec3 X, vec3 N)
@@ -16,12 +17,25 @@ float G1(float alpha, vec3 X, vec3 N)
 	float k = alpha / 2.0;
 	float NdotX = max(dot(N, X), 0.0);
 
-	return NdotX / max((NdotX * (1.0 - k) + k), epsilon);
+	return NdotX / max((NdotX * (1.0 - k) + k), epsilon2);
+}
+
+float G2(float alpha, vec3 X, vec3 N)
+{
+	float k = alpha / 2.0;
+	float NdotX = abs(dot(N, X));
+
+	return NdotX / max((NdotX * (1.0 - k) + k), epsilon2);
 }
 
 float G(float alpha, vec3 V, vec3 N, vec3 L)
 {
 	return G1(alpha, V, N) * G1(alpha, L, N);
+}
+
+float GG(float alpha, vec3 V, vec3 N, vec3 L)
+{
+	return G2(alpha, V, N) * G2(alpha, L, N);
 }
 
 float Luminance(vec3 color)
@@ -37,7 +51,7 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha)
 	vec3 numer = D(alpha, N, H) * G(alpha, V, N, L) * F;
 	float denom = 4.0 * NdotV * NdotL;
 
-	return numer / max(denom, epsilon);
+	return numer / max(denom, epsilon2);
 }
 
 float GGXVNDFPDF(vec3 V, vec3 N, vec3 H, float alpha)
@@ -45,7 +59,7 @@ float GGXVNDFPDF(vec3 V, vec3 N, vec3 H, float alpha)
 	float NdotH = max(dot(N, H), 0.0);
 	float VdotH = max(dot(V, H), 0.0);
 
-	return D(alpha, N, H) * G1(alpha, V, N) * NdotH / max(4.0 * VdotH, epsilon);
+	return D(alpha, N, H) * G1(alpha, V, N) * NdotH / max(4.0 * VdotH, epsilon2);
 }
 
 vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha, float etaI, float etaT)
@@ -55,10 +69,10 @@ vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha, float etaI, float
 	const float VdotH = abs(dot(V, H));
 	const float LdotH = abs(dot(L, H));
 
-	vec3 numer = D(alpha, N, H) * G(alpha, V, N, L) * (1.0 - F) * etaT * etaT * VdotH * LdotH;
+	vec3 numer = D(alpha, N, H) * GG(alpha, V, N, L) * (1.0 - F) * etaT * etaT * VdotH * LdotH;
 	float denom = NdotV * NdotL * pow(etaI * VdotH + etaT * LdotH, 2.0);
 
-	return numer / max(denom, epsilon);
+	return numer / max(denom, epsilon2);
 }
 
 float GGXBTDFPDF(vec3 V, vec3 N, vec3 L, vec3 H, float alpha, float eta)
@@ -69,9 +83,9 @@ float GGXBTDFPDF(vec3 V, vec3 N, vec3 L, vec3 H, float alpha, float eta)
 
 	float denom = eta * LdotH + VdotH;
 
-	float dwh_dwi = (eta * eta * LdotH) / max(denom * denom, epsilon);
+	float dwh_dwi = (eta * eta * LdotH) / max(denom * denom, epsilon2);
 
-	return D(alpha, N, H) * G1(alpha, V, N) * NdotH * dwh_dwi;
+	return D(alpha, N, H) * G2(alpha, V, N) * NdotH * dwh_dwi;
 }
 
 #endif
