@@ -96,6 +96,8 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 		VkResult error = m_MaterialsBuffer.Create(materials.size() * sizeof(Material), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		CHECK_VK_ERROR(error, "materialsBuffer.Create");
 
+		printf("Loading Scene...\n");
+
 		for (size_t meshIdx = 0; meshIdx < shapes.size(); meshIdx++)
 		{
 			RTMesh& mesh = m_Meshes[meshIdx];
@@ -154,7 +156,7 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 
 				faces[face].face = uvec3(a, b, c);
 				faces[face].matID = shape.mesh.material_ids[face];
-			};
+			}
 
 			ComputeTangent(attribs, positions, numVertices, indices, numFaces);
 
