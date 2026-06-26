@@ -9,7 +9,7 @@ A simple path tracing project implemented in Vulkan \& C++
 
 # Getting Started
 
-##Windows
+## Windows
 
 1. Clone using `git clone --recursive https://github.com/VergilSparda114514/PathTracing.git`
 2. Run `compile_shaders.cmd` and `compile_comp_shaders.cmd` in the `PTApp/Resource` folder
