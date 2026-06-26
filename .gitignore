@@ -11,6 +11,8 @@ bin-int/
 *.vcxproj.user
 *.vcxproj.filters
 *.sln
+*.obj
+*.mtl
 
 # Exclude
 !vendor/bin
