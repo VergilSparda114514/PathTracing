@@ -2,8 +2,8 @@
 
 int main()
 {
-	RTXApp app;
-	app.Run();
+	RTXApplication application;
+	application.Run();
 }
 
 #ifdef _WIN64

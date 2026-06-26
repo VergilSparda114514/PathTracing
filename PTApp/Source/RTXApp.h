@@ -9,7 +9,7 @@
 #include "RTScene.h"
 #include "ShaderBindingTable.h"
 
-class RTXApp final : public Application
+class RTXApplication final : public Application
 {
 protected:
     void InitSettings() override;

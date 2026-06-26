@@ -18,7 +18,7 @@ static uint32_t NextPowerOf2(uint32_t n)
 	return n + 1;
 }
 
-void RTXApp::InitSettings()
+void RTXApplication::InitSettings()
 {
 	m_Settings.name = "Ray Tracing";
 	m_Settings.fullscreen = false;
@@ -31,7 +31,7 @@ void RTXApp::InitSettings()
 	m_Settings.supportDocking = false; // Don't try, won't work
 }
 
-void RTXApp::InitApp()
+void RTXApplication::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
 	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
@@ -45,7 +45,7 @@ void RTXApp::InitApp()
 	UpdateComputeDescriptorSets();
 }
 
-void RTXApp::FreeResources()
+void RTXApplication::FreeResources()
 {
 	m_Scene.Destroy(m_Device);
 
@@ -75,7 +75,7 @@ void RTXApp::FreeResources()
 	}
 }
 
-void RTXApp::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
+void RTXApplication::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 {
 	vkCmdBindPipeline(commandBuffer,
 		VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
@@ -131,7 +131,7 @@ void RTXApp::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 	m_CompositePass.Dispatch(commandBuffer, { width, height, 1u });
 }
 
-void RTXApp::OnUIRender(float deltaTime)
+void RTXApplication::OnUIRender(float deltaTime)
 {
 	{
 		ImGui::Begin("Settings");
@@ -258,7 +258,7 @@ void RTXApp::OnUIRender(float deltaTime)
 	}
 }
 
-void RTXApp::OnUpdate(size_t, float deltaTime)
+void RTXApplication::OnUpdate(size_t, float deltaTime)
 {
 	const std::vector<RTMesh>& meshes = m_Scene.GetMeshes();
 	const uint32_t numInstances = m_Scene.GetMeshes().size();
@@ -278,7 +278,7 @@ void RTXApp::OnUpdate(size_t, float deltaTime)
 	}
 }
 
-void RTXApp::OnResize()
+void RTXApplication::OnResize()
 {
 	m_ResultImage.Destroy();
 	CreateResultImage();
@@ -289,7 +289,7 @@ void RTXApp::OnResize()
 	m_Camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
 
-void RTXApp::CreateBuffers()
+void RTXApplication::CreateBuffers()
 {
 	m_Camera.CreateBuffer();
 
@@ -308,7 +308,7 @@ void RTXApp::CreateBuffers()
 	}
 }
 
-void RTXApp::CreateResultImage()
+void RTXApplication::CreateResultImage()
 {
 	VkExtent3D extent = { m_Settings.resolutionX, m_Settings.resolutionY, 1 };
 
@@ -334,7 +334,7 @@ void RTXApp::CreateResultImage()
 	m_PrevReservoirBuffer.Create(sizeof(Reservoir) * size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void RTXApp::CreateRTDescriptorSetsLayouts()
+void RTXApplication::CreateRTDescriptorSetsLayouts()
 {
 	const uint32_t numMeshes = static_cast<uint32_t>(m_Scene.GetMeshes().size());
 	const uint32_t numMaterials = static_cast<uint32_t>(m_Scene.GetMaterials().size());
@@ -508,7 +508,7 @@ void RTXApp::CreateRTDescriptorSetsLayouts()
 	CHECK_VK_ERROR(error, L"vkCreateDescriptorSetLayout");
 }
 
-void RTXApp::UpdateRTDescriptorSets()
+void RTXApplication::UpdateRTDescriptorSets()
 {
 	const uint32_t numMeshes = static_cast<uint32_t>(m_Scene.GetMeshes().size());
 	const uint32_t numMaterials = static_cast<uint32_t>(m_Scene.GetMaterials().size());
@@ -815,7 +815,7 @@ void RTXApp::UpdateRTDescriptorSets()
 	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
 }
 
-void RTXApp::CreateRTPipelineAndSBT()
+void RTXApplication::CreateRTPipelineAndSBT()
 {
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -851,7 +851,7 @@ void RTXApp::CreateRTPipelineAndSBT()
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
 }
 
-void RTXApp::CreateComputeDescriptorSetsLayouts()
+void RTXApplication::CreateComputeDescriptorSetsLayouts()
 {
 	m_ComputeDescriptorSets.resize(2);
 	m_ComputeDescriptorSetsLayouts.resize(2);
@@ -951,7 +951,7 @@ void RTXApp::CreateComputeDescriptorSetsLayouts()
 	CHECK_VK_ERROR(error, "vkCreateDescriptorSetLayout");
 }
 
-void RTXApp::UpdateComputeDescriptorSets()
+void RTXApplication::UpdateComputeDescriptorSets()
 {
 	std::vector<VkDescriptorPoolSize> poolSizes =
 	{
@@ -1075,7 +1075,7 @@ void RTXApp::UpdateComputeDescriptorSets()
 	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
 }
 
-void RTXApp::UpdatePingPongDescriptorSets(VkDescriptorImageInfo* ping, VkDescriptorImageInfo* pong)
+void RTXApplication::UpdatePingPongDescriptorSets(VkDescriptorImageInfo* ping, VkDescriptorImageInfo* pong)
 {
 	VkWriteDescriptorSet pingImageWrite{};
 	pingImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1114,7 +1114,7 @@ void RTXApp::UpdatePingPongDescriptorSets(VkDescriptorImageInfo* ping, VkDescrip
 	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
 }
 
-void RTXApp::CreateComputePipeline()
+void RTXApplication::CreateComputePipeline()
 {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
