@@ -33,7 +33,7 @@ A simple path tracing project implemented in Vulkan \& C++
 
 ### TODO (by priority)
 * [x] BSDF
-* [ ] ReSTIR GRIS
 * [ ] FFT Bloom
 * [ ] Docking
+* [ ] ReSTIR GRIS
 
