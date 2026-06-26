@@ -700,8 +700,15 @@ bool Application::InitializeOffscreenImage()
 		return false;
 	}
 
-	VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	VkImageSubresourceRange range{};
+	range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	range.baseMipLevel = 0;
+	range.levelCount = 1;
+	range.baseArrayLayer = 0;
+	range.layerCount = 1;
+
 	error = m_OffscreenImage.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, range);
+
 	return error == VK_SUCCESS;
 }
 
@@ -839,17 +846,8 @@ void Application::RecreateSwapchain()
 		glfwWaitEvents();
 	} while (width == 0 || height == 0);
 
-	if (m_Settings.supportDocking)
-	{
-		m_Settings.resolutionX = m_ViewportWidth;
-		m_Settings.resolutionY = m_ViewportHeight;
-	}
-
-	else
-	{
-		m_Settings.resolutionX = width;
-		m_Settings.resolutionY = height;
-	}
+	m_Settings.resolutionX = m_Settings.supportDocking ? m_ViewportWidth : width;
+	m_Settings.resolutionY = m_Settings.supportDocking ? m_ViewportHeight : height;
 
 	InitializeSwapchain();
 	InitializeOffscreenImage();

@@ -1,7 +1,7 @@
 @echo off
 
 setlocal
-set GLSL_COMPILER=glslangValidator.exe
+set GLSL_COMPILER=%VULKAN_SDK%/Bin/glslangValidator.exe
 set SOURCE_FOLDER="./../Source/Shaders/"
 set BINARIES_FOLDER="./Shaders/"
 

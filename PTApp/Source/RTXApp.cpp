@@ -26,7 +26,7 @@ void RTXApp::InitSettings()
 	m_Settings.enableVSync = false;
 	m_Settings.supportRaytracing = true;
 	m_Settings.supportDescriptorIndexing = true;
-	m_Settings.resolutionX = 1980;
+	m_Settings.resolutionX = 1920;
 	m_Settings.resolutionY = 1080;
 	m_Settings.supportDocking = false; // Don't try, won't work
 }
@@ -34,7 +34,7 @@ void RTXApp::InitSettings()
 void RTXApp::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/glass_box.obj", "studio_garden_2k.jpg");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
@@ -286,7 +286,7 @@ void RTXApp::OnResize()
 	UpdateRTDescriptorSets();
 	UpdateComputeDescriptorSets();
 
-	m_Camera.OnResize(m_Settings.resolutionX, m_Settings.resolutionY);
+	m_Camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
 
 void RTXApp::CreateBuffers()

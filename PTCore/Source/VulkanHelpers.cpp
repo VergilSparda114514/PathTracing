@@ -1,7 +1,7 @@
 #include "VulkanHelpers.h"
 #include <string>
 #include <fstream>
-#include <cstring> // for memcpy
+#include <cstring>
 
 #define STB_IMAGE_IMPLEMENTATION
 // excluding old and unusefull formats
@@ -11,6 +11,8 @@
 #define STBI_NO_PNM
 
 #include <stb_image.h>
+
+#include <backends/imgui_impl_vulkan.h>
 
 namespace VulkanHelpers
 {
@@ -112,7 +114,7 @@ namespace VulkanHelpers
 
 	Buffer::~Buffer()
 	{
-		this->Destroy();
+		Destroy();
 	}
 
 	VkResult Buffer::Create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties)
@@ -220,12 +222,12 @@ namespace VulkanHelpers
 
 	bool Buffer::UploadData(const void* data, VkDeviceSize size, VkDeviceSize offset) const
 	{
-		void* mem = this->Map(size, offset);
+		void* mem = Map(size, offset);
 
 		if (mem)
 		{
 			std::memcpy(mem, data, size);
-			this->Unmap();
+			Unmap();
 		}
 
 		return mem;
@@ -235,7 +237,7 @@ namespace VulkanHelpers
 
 	Image::~Image()
 	{
-		this->Destroy();
+		Destroy();
 	}
 
 	VkResult Image::Create(VkImageType imageType,
@@ -266,10 +268,10 @@ namespace VulkanHelpers
 
 		if (VK_SUCCESS == result)
 		{
-			VkMemoryRequirements memoryRequirements = {};
+			VkMemoryRequirements memoryRequirements{};
 			vkGetImageMemoryRequirements(__details::s_Device, m_Image, &memoryRequirements);
 
-			VkMemoryAllocateInfo memoryAllocateInfo = {};
+			VkMemoryAllocateInfo memoryAllocateInfo{};
 			memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			memoryAllocateInfo.allocationSize = memoryRequirements.size;
 			memoryAllocateInfo.memoryTypeIndex = GetMemoryType(memoryRequirements, memoryProperties);
@@ -339,6 +341,12 @@ namespace VulkanHelpers
 			vkDestroyImage(__details::s_Device, m_Image, nullptr);
 			m_Image = VK_NULL_HANDLE;
 		}
+
+		if (m_DescriptorSet)
+		{
+			vkFreeDescriptorSets(__details::s_Device, VK_NULL_HANDLE, 1, &m_DescriptorSet);
+			m_DescriptorSet = VK_NULL_HANDLE;
+		}
 	}
 
 	bool Image::Load(const char* fileName)
@@ -363,6 +371,9 @@ namespace VulkanHelpers
 
 		if (imageData)
 		{
+			m_Width = width;
+			m_Height = height;
+
 			const int bpp = textureHDR ? sizeof(float[4]) : sizeof(uint8_t[4]);
 			VkDeviceSize imageSize = static_cast<VkDeviceSize>(width * height * bpp);
 
@@ -381,7 +392,7 @@ namespace VulkanHelpers
 
 				const VkFormat fmt = textureHDR ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R8G8B8A8_SRGB;
 
-				error = this->Create(VK_IMAGE_TYPE_2D, fmt, imageExtent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				error = Create(VK_IMAGE_TYPE_2D, fmt, imageExtent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				
 				if (VK_SUCCESS != error)
 				{
@@ -524,11 +535,16 @@ namespace VulkanHelpers
 		return vkCreateSampler(__details::s_Device, &samplerCreateInfo, nullptr, &m_Sampler);
 	}
 
+	void Image::CreateDescriptorSet()
+	{
+		m_DescriptorSet = ImGui_ImplVulkan_AddTexture(m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
 
 
 	Shader::~Shader()
 	{
-		this->Destroy();
+		Destroy();
 	}
 
 	bool Shader::LoadFromFile(const char* fileName)
@@ -626,4 +642,4 @@ namespace VulkanHelpers
 		return result;
 	}
 
-} // namespace vulkanhelpers
+}

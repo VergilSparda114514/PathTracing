@@ -3,6 +3,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #include "../shared_with_shaders.h"
+#include "Random.h"
 
 layout(set = 0, binding = 0, rgba32f) uniform image2D ResultImage;
 layout(set = 1, binding = 0, rgba32f) uniform image2D PingImage;

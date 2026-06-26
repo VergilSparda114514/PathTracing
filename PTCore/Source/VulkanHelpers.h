@@ -80,19 +80,29 @@ namespace VulkanHelpers
         bool        Load(const char* fileName);
         VkResult    CreateImageView(VkImageViewType viewType, VkFormat format, VkImageSubresourceRange subresourceRange);
         VkResult    CreateSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode);
+        void        CreateDescriptorSet();
 
         // getters
         VkFormat    GetFormat() const { return m_Format; }
         VkImage     GetImage() const { return m_Image; }
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
+        VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
 
     private:
+        // For Vulkan
+
         VkFormat        m_Format = VK_FORMAT_B8G8R8A8_UNORM;
         VkImage         m_Image = VK_NULL_HANDLE;
         VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
         VkImageView     m_ImageView = VK_NULL_HANDLE;
         VkSampler       m_Sampler = VK_NULL_HANDLE;
+
+        // For Dear ImGui
+
+        uint32_t m_Width = 0;
+        uint32_t m_Height = 0;
+        VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
     };
 
 

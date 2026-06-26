@@ -1,6 +1,6 @@
 #!/bin/sh
 
-GLSL_COMPILER="./glslangValidator"
+GLSL_COMPILER="${VULKAN_SDK}/Bin/glslangValidator"
 SOURCE_FOLDER="./../src/shaders/"
 BINARIES_FOLDER="./shaders/"
 
