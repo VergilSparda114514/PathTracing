@@ -1,6 +1,6 @@
 @echo off
 
 pushd ..
-vendor\bin\premake\Windows\premake5.exe --file=Build-PathTracing.lua vs2022
+vendor/bin/premake/Windows/premake5.exe --file=Build-PathTracing.lua vs2022
 popd
 pause
