@@ -53,7 +53,7 @@ protected:
     void    RecreateSwapchain();
 
     void    ProcessFrame(float dt, ImDrawData* drawData);
-    VkCommandBuffer RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData);
+    void    RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData);
     void    FreeVulkan();
 
     virtual void InitSettings() {}
@@ -76,25 +76,27 @@ protected:
     VkSurfaceFormatKHR      m_SurfaceFormat{};
     VkSurfaceKHR            m_Surface = VK_NULL_HANDLE;
     VkSwapchainKHR          m_Swapchain = VK_NULL_HANDLE;
-    std::vector<VkImage>          m_SwapchainImages;
-    std::vector<VkImageView>      m_SwapchainImageViews;
-    std::vector<VkFence>          m_WaitForFrameFences;
+    std::vector<VkImage>          m_SwapchainImages{};
+    std::vector<VkImageView>      m_SwapchainImageViews{};
+    std::vector<VkFence>          m_WaitForFrameFences{};
     VkCommandPool           m_CommandPool = VK_NULL_HANDLE;
-    VulkanHelpers::Image    m_OffscreenImage;
-    std::vector<VkCommandBuffer>  m_CommandBuffers;
+    VulkanHelpers::Image    m_OffscreenImage{};
+    std::vector<VkCommandBuffer> m_CommandBuffers{};
     VkSemaphore             m_SemaphoreImageAcquired = VK_NULL_HANDLE;
     VkSemaphore             m_SemaphoreRenderFinished = VK_NULL_HANDLE;
     uint32_t                m_CurrentFrame = 0;
     uint32_t                m_ViewportWidth = 0;
     uint32_t                m_ViewportHeight = 0;
 
-    uint32_t                m_GraphicsQueueFamilyIndex = 0u;
-    uint32_t                m_ComputeQueueFamilyIndex = 0u;
-    uint32_t                m_TransferQueueFamilyIndex = 0u;
+    uint32_t                m_GraphicsQueueFamilyIndex = 0;
+    uint32_t                m_ComputeQueueFamilyIndex = 0;
+    uint32_t                m_TransferQueueFamilyIndex = 0;
     VkQueue                 m_GraphicsQueue = VK_NULL_HANDLE;
     VkQueue                 m_ComputeQueue = VK_NULL_HANDLE;
     VkQueue                 m_TransferQueue = VK_NULL_HANDLE;
 
     // RTX
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RTProperties;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RTProperties{};
+private:
+    std::vector<VkCommandBuffer> m_DynamicRenderingCommandBuffers{};
 };

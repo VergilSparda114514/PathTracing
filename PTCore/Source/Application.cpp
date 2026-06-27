@@ -715,16 +715,19 @@ bool Application::InitializeOffscreenImage()
 bool Application::InitializeCommandBuffers()
 {
 	m_CommandBuffers.resize(m_SwapchainImages.size());
+	m_DynamicRenderingCommandBuffers.resize(m_SwapchainImages.size());
 
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo;
 	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAllocateInfo.pNext = nullptr;
 	commandBufferAllocateInfo.commandPool = m_CommandPool;
 	commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+	commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_SwapchainImages.size());
 
-	const VkResult error = vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, m_CommandBuffers.data());
-	return (VK_SUCCESS == error);
+	const VkResult error1 = vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, m_CommandBuffers.data());
+	const VkResult error2 = vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, m_DynamicRenderingCommandBuffers.data());
+
+	return (error1 == VK_SUCCESS && error2 == VK_SUCCESS);
 }
 
 bool Application::InitializeSynchronization()
@@ -886,9 +889,10 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 	vkResetFences(m_Device, 1, &m_WaitForFrameFences[imageIndex]);
 
 	OnUpdate(imageIndex, dt);
+	RecordCommandBuffer(imageIndex, drawData);
 
 	const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	std::array<VkCommandBuffer, 2> commandBuffers{ m_CommandBuffers[imageIndex], RecordCommandBuffer(imageIndex, drawData) };
+	std::array<VkCommandBuffer, 2> commandBuffers{ m_CommandBuffers[imageIndex], m_DynamicRenderingCommandBuffers[imageIndex] };
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -929,9 +933,17 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 	m_CurrentFrame = (m_CurrentFrame + 1) % gMaxFramesInFlight;
 }
 
-VkCommandBuffer Application::RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData)
+void Application::RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData)
 {
-	VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
+	VkCommandBufferBeginInfo commandBufferBeginInfo{};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.pNext = nullptr;
+	commandBufferBeginInfo.flags = 0;
+	commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+	const VkCommandBuffer commandBuffer = m_DynamicRenderingCommandBuffers[imageIndex];
+
+	vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
 
 	VkRenderingAttachmentInfo colorAttachment{};
 	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -961,8 +973,6 @@ VkCommandBuffer Application::RecordCommandBuffer(size_t imageIndex, ImDrawData* 
 	CmdEndRenderingKHR(commandBuffer);
 
 	vkEndCommandBuffer(commandBuffer);
-
-	return commandBuffer;
 }
 
 void Application::FreeVulkan()
