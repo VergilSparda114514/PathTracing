@@ -13,8 +13,8 @@
 Camera::Camera(float verticalFOV, float nearClip, float farClip)
 	: m_VerticalFOV(verticalFOV), m_NearClip(nearClip), m_FarClip(farClip)
 {
-	m_Position = glm::vec3(-14.0f, 2.0f, 2.0f);
-	m_ForwardDirection = glm::normalize(glm::vec3(-13.0f, 2.0f, 1.75f) - m_Position);
+	position = glm::vec3(-14.0f, 2.0f, 2.0f);
+	direction = glm::normalize(glm::vec3(-13.0f, 2.0f, 1.75f) - position);
 }
 
 bool Camera::OnUpdate(float ts)
@@ -44,32 +44,32 @@ bool Camera::OnUpdate(float ts)
 	// Movement
 	if (Input::IsKeyDown(KeyCode::W))
 	{
-		m_Position += m_ForwardDirection * speed * ts;
+		position += direction * speed * ts;
 		moved = true;
 	}
 	else if (Input::IsKeyDown(KeyCode::S))
 	{
-		m_Position -= m_ForwardDirection * speed * ts;
+		position -= direction * speed * ts;
 		moved = true;
 	}
 	if (Input::IsKeyDown(KeyCode::A))
 	{
-		m_Position -= rightDirection * speed * ts;
+		position -= rightDirection * speed * ts;
 		moved = true;
 	}
 	else if (Input::IsKeyDown(KeyCode::D))
 	{
-		m_Position += rightDirection * speed * ts;
+		position += rightDirection * speed * ts;
 		moved = true;
 	}
 	if (Input::IsKeyDown(KeyCode::Q))
 	{
-		m_Position -= gUpDirection * speed * ts;
+		position -= g_UpDirection * speed * ts;
 		moved = true;
 	}
 	else if (Input::IsKeyDown(KeyCode::E))
 	{
-		m_Position += gUpDirection * speed * ts;
+		position += g_UpDirection * speed * ts;
 		moved = true;
 	}
 
@@ -80,8 +80,8 @@ bool Camera::OnUpdate(float ts)
 		float yawDelta = delta.x * GetRotationSpeed();
 
 		glm::quat q = glm::normalize(glm::cross(glm::angleAxis(-pitchDelta, rightDirection),
-			glm::angleAxis(-yawDelta, gUpDirection)));
-		m_ForwardDirection = glm::rotate(q, m_ForwardDirection);
+			glm::angleAxis(-yawDelta, g_UpDirection)));
+		direction = glm::rotate(q, direction);
 
 		moved = true;
 	}
@@ -107,17 +107,12 @@ void Camera::CreateBuffer()
 	m_Buffer.UploadData(new CameraParams(), sizeof(CameraParams));
 }
 
-float Camera::GetRotationSpeed()
-{
-	return 0.3f;
-}
-
 void Camera::UpdateBuffer()
 {
 	CameraParams* params = reinterpret_cast<CameraParams*>(m_Buffer.Map());
 
-	params->camPos = GetPosition();
-	params->camDir = GetDirection();
+	params->camPos = position;
+	params->camDir = direction;
 	params->camUp = GetUp();
 	params->camSide = GetSide();
 	params->camNearFarFov = vec3(GetNearPlane(), GetFarPlane(), Deg2Rad(GetFovY()));

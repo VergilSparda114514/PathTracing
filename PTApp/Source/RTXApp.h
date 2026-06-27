@@ -2,7 +2,6 @@
 
 #include "VulkanHelpers.h"
 #include "Application.h"
-#include "Camera.h"
 
 #define NUM_SETS 6
 
@@ -63,7 +62,6 @@ private:
     VkDescriptorImageInfo           m_PongDescInfo;
 
     // Camera & user input
-    Camera                          m_Camera{ 60.0f, 0.1f, 100.0f };
     VulkanHelpers::Buffer           m_LightingBuffer;
     VulkanHelpers::Buffer           m_PostProcessBuffer;
     VulkanHelpers::Buffer           m_CurrReservoirBuffer;

@@ -2,7 +2,7 @@
 
 #include "VulkanHelpers.h"
 
-constexpr glm::vec3 gUpDirection(0.0f, 1.0f, 0.0f);
+constexpr glm::vec3 g_UpDirection{ 0.0f, 1.0f, 0.0f };
 
 class Camera
 {
@@ -12,28 +12,26 @@ public:
 	bool OnUpdate(float ts);
 	void OnResize(uint32_t width, uint32_t height);
 
-	const glm::vec3& GetPosition() const { return m_Position; }
-	const glm::vec3& GetDirection() const { return m_ForwardDirection; }
-	const glm::vec3& GetUp() const { return glm::normalize(glm::cross(GetSide(), GetDirection())); }
-	const glm::vec3& GetSide() const { return glm::normalize(glm::cross(GetDirection(), gUpDirection)); }
+	const glm::vec3& GetUp() const { return glm::normalize(glm::cross(GetSide(), direction)); }
+	const glm::vec3& GetSide() const { return glm::normalize(glm::cross(direction, g_UpDirection)); }
 
 	void CreateBuffer();
 	VulkanHelpers::Buffer& GetBuffer() { return m_Buffer; }
 
-	float GetNearPlane() const { return m_NearClip; }
-	float GetFarPlane() const { return m_FarClip; }
-	float GetFovY() const { return m_VerticalFOV; }
+	constexpr float GetNearPlane() const { return m_NearClip; }
+	constexpr float GetFarPlane() const { return m_FarClip; }
+	constexpr float GetFovY() const { return m_VerticalFOV; }
 
-	float GetRotationSpeed();
+	constexpr float GetRotationSpeed() const { return 0.3; }
+public:
+	glm::vec3 position{ 0.0f };
+	glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
 private:
 	void UpdateBuffer();
 private:
 	float m_VerticalFOV = 45.0f;
 	float m_NearClip = 0.1f;
 	float m_FarClip = 100.0f;
-
-	glm::vec3 m_Position{ 0.0f, 0.0f, 0.0f };
-	glm::vec3 m_ForwardDirection{ 0.0f, 0.0f, 0.0f };
 
 	VulkanHelpers::Buffer m_Buffer;
 

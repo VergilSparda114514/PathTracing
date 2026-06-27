@@ -34,7 +34,7 @@ void RTXApplication::InitSettings()
 void RTXApplication::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.obj", "studio_garden_2k.jpg");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.scn");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
@@ -138,11 +138,25 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		ImGui::Text("%.1f FPS (%.3fms)", 1.0f / deltaTime, 1000.0f * deltaTime);
 
-		CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Camera.GetBuffer().Map());
+		CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Scene.camera.GetBuffer().Map());
 		LightingParams* lightingParams = reinterpret_cast<LightingParams*>(m_LightingBuffer.Map());
 		PostProcessParams* ppParams = reinterpret_cast<PostProcessParams*>(m_PostProcessBuffer.Map());
 
 		static bool tmpAcc = true;
+
+		ImGui::Text("Camera");
+
+		ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
+		ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
+
+		if (ImGui::Button("Save"))
+		{
+			m_Scene.Save();
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
 
 		ImGui::Text("Ray");
 
@@ -163,6 +177,7 @@ void RTXApplication::OnUIRender(float deltaTime)
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
+
 		ImGui::Text("Post Processing");
 
 		const char* items[] =
@@ -190,7 +205,7 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		m_PostProcessBuffer.Unmap();
 		m_LightingBuffer.Unmap();
-		m_Camera.GetBuffer().Unmap();
+		m_Scene.camera.GetBuffer().Unmap();
 
 		ImGui::End();
 	}
@@ -272,7 +287,7 @@ void RTXApplication::OnUpdate(size_t, float deltaTime)
 
 	m_Scene.GetInstancesBuffer().Unmap();
 
-	if (m_Camera.OnUpdate(deltaTime))
+	if (m_Scene.camera.OnUpdate(deltaTime))
 	{
 		m_AccumulatedFrame = 0;
 	}
@@ -280,18 +295,20 @@ void RTXApplication::OnUpdate(size_t, float deltaTime)
 
 void RTXApplication::OnResize()
 {
+	m_AccumulatedFrame = 0;
+
 	m_ResultImage.Destroy();
 	CreateResultImage();
 
 	UpdateRTDescriptorSets();
 	UpdateComputeDescriptorSets();
 
-	m_Camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
+	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
 
 void RTXApplication::CreateBuffers()
 {
-	m_Camera.CreateBuffer();
+	m_Scene.camera.CreateBuffer();
 
 	{
 		VkResult error = m_LightingBuffer.Create(sizeof(LightingParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -641,9 +658,9 @@ void RTXApplication::UpdateRTDescriptorSets()
 	camDataBufferWrite.pImageInfo = nullptr;
 
 	VkDescriptorBufferInfo camDataBufferInfo{};
-	camDataBufferInfo.buffer = m_Camera.GetBuffer().GetBuffer();
+	camDataBufferInfo.buffer = m_Scene.camera.GetBuffer().GetBuffer();
 	camDataBufferInfo.offset = 0;
-	camDataBufferInfo.range = m_Camera.GetBuffer().GetSize();
+	camDataBufferInfo.range = m_Scene.camera.GetBuffer().GetSize();
 
 	camDataBufferWrite.pBufferInfo = &camDataBufferInfo;
 

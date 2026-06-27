@@ -3,12 +3,17 @@
 #include "shared_with_shaders.h"
 #include "VKKHR.h"
 
+#include <fstream>
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #ifndef _DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
 #define TINYOBJLOADER_USE_MULTITHREADING
 #define TINYOBJLOADER_USE_SIMD
 #endif
 #include <tiny_obj_loader.h>
+
+#define YAML_CPP_STATIC_DEFINE
+#include <yaml-cpp/yaml.h>
 
 
 
@@ -18,6 +23,56 @@ static const std::filesystem::path s_TexFolder = "Resource/Textures/";
 static const std::filesystem::path s_DefaultTex = "Resource/Textures/default.jpg";
 
 
+
+template <>
+struct YAML::convert<std::filesystem::path>
+{
+	static Node encode(const std::filesystem::path& rhs)
+	{
+		return convert<std::string>::encode(rhs.string());
+	}
+
+	static bool decode(const Node& node, std::filesystem::path& rhs)
+	{
+		std::string str{};
+
+		const bool result = convert<std::string>::decode(node, str);
+		rhs = str;
+
+		return result;
+	}
+};
+
+template <int Length, typename Type, glm::qualifier Qualifier>
+struct YAML::convert<glm::vec<Length, Type, Qualifier>>
+{
+	static Node encode(const glm::vec<Length, Type, Qualifier>& rhs)
+	{
+		Node node{ NodeType::Sequence };
+
+		for (size_t i = 0; i < rhs.length(); i++)
+		{
+			node.push_back(rhs[i]);
+		}
+
+		return node;
+	}
+
+	static bool decode(const Node& node, glm::vec<Length, Type, Qualifier>& rhs)
+	{
+		if (!node.IsSequence())
+		{
+			return false;
+		}
+
+		for (size_t i = 0; i < node.size(); i++)
+		{
+			rhs[i] = node[i].as<Type>();
+		}
+
+		return true;
+	}
+};
 
 static void ComputeTangent(VertexAttribute* attribs, glm::vec3* positions, size_t numVerts, uint32_t* indices, size_t numFaces)
 {
@@ -73,7 +128,29 @@ void RTScene::Destroy(VkDevice device)
 	}
 }
 
-void RTScene::Load(const std::filesystem::path& scenePath)
+void RTScene::Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath)
+{
+	LoadScene(s_ScenesFolder / scenePath);
+	BuildTLAS(device, cmdPool, queue);
+
+	m_EnvTexture.Load((s_EnvsFolder / envPath).string().c_str());
+
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	m_EnvTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_EnvTexture.GetFormat(), subresourceRange);
+	m_EnvTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+	m_EnvTextureDescInfo.sampler = m_EnvTexture.GetSampler();
+	m_EnvTextureDescInfo.imageView = m_EnvTexture.GetImageView();
+	m_EnvTextureDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+}
+
+void RTScene::LoadScene(const std::filesystem::path& scenePath)
 {
 	tinyobj::basic_attrib_t attrib;
 	std::vector<tinyobj::basic_shape_t<>> shapes;
@@ -299,26 +376,53 @@ void RTScene::Load(const std::filesystem::path& scenePath)
 	}
 }
 
-void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, std::filesystem::path scenePath, std::filesystem::path envPath)
+void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath)
 {
-	Load(s_ScenesFolder / scenePath);
-	BuildTLAS(device, cmdPool, queue);
+	m_ScenePath = s_ScenesFolder / scenePath;
+	m_ScenePath.replace_extension(".scn");
 
-	m_EnvTexture.Load((s_EnvsFolder / envPath).string().c_str());
+	YAML::Node scene{};
 
-	VkImageSubresourceRange subresourceRange{};
-	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-	subresourceRange.baseArrayLayer = 0;
-	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+	scene["Scene Path"] = scenePath;
+	scene["Environment Path"] = envPath;
 
-	m_EnvTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_EnvTexture.GetFormat(), subresourceRange);
-	m_EnvTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	std::ofstream out(m_ScenePath);
+	out << scene;
+	out.close();
 
-	m_EnvTextureDescInfo.sampler = m_EnvTexture.GetSampler();
-	m_EnvTextureDescInfo.imageView = m_EnvTexture.GetImageView();
-	m_EnvTextureDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	Load(device, cmdPool, queue, scenePath, envPath);
+}
+
+void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& sceneFilePath)
+{
+	m_ScenePath = s_ScenesFolder / sceneFilePath;
+
+	if (!std::filesystem::exists(m_ScenePath))
+	{
+		throw std::invalid_argument("Scene file does not exist");
+	}
+
+	YAML::Node scene = YAML::LoadFile(m_ScenePath.string());
+
+	std::filesystem::path scenePath = scene["Scene Path"].as<std::filesystem::path>();
+	std::filesystem::path envPath = scene["Environment Path"].as<std::filesystem::path>();
+
+	camera.position = scene["Camera Position"].as<glm::vec3>();
+	camera.direction = scene["Camera Direction"].as<glm::vec3>();
+
+	Load(device, cmdPool, queue, scenePath, envPath);
+}
+
+void RTScene::Save()
+{
+	YAML::Node scene = YAML::LoadFile(m_ScenePath.string());
+
+	scene["Camera Position"] = camera.position;
+	scene["Camera Direction"] = camera.direction;
+
+	std::ofstream out(m_ScenePath);
+	out << scene;
+	out.close();
 }
 
 void RTScene::BuildTLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
