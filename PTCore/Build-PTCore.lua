@@ -15,10 +15,9 @@ project "PTCore"
    {
        "Source",
        
-       "../vendor/imgui",
        "../vendor/GLFW/include",
        "../vendor/stb_image",
-       "../vendor/tiny_obj_loader",
+       "../vendor/imgui",
        
        "%{IncludeDir.VulkanSDK}",
        "%{IncludeDir.glm}",
@@ -26,8 +25,9 @@ project "PTCore"
 
    links
    {
-       "ImGui",
        "GLFW",
+       "ImGui",
+       "yaml-cpp",
 
        "%{Library.Vulkan}",
    }

@@ -13,10 +13,11 @@ project "Path Tracing"
 
    includedirs
    {
-       "../vendor/imgui",
        "../vendor/GLFW/include",
        "../vendor/stb_image",
        "../vendor/tiny_obj_loader",
+       "../vendor/imgui",
+       "../vendor/yaml-cpp/include",
        
        "../PTCore/Source",
        

@@ -11,15 +11,11 @@ Library = {}
 Library["Vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
 
 group "Dependencies"
+   include "vendor/GLFW"
    include "vendor/imgui"
-   include "vendor/glfw"
+   include "vendor/yaml-cpp"
 group ""
 
 group "Core"
     include "PTCore/Build-PTCore.lua"
-
-    -- Optional modules
-    if os.isfile("Modules/Walnut-Networking/Build-Walnut-Networking.lua") then
-        include "Modules/Walnut-Networking/Build-Walnut-Networking.lua"
-    end
 group ""
