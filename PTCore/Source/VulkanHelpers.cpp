@@ -110,7 +110,7 @@ namespace VulkanHelpers
 		vkFreeCommandBuffers(__details::s_Device, __details::s_CommandPool, 1, &commandBuffer);
 	}
 
-
+	// Buffer
 
 	Buffer::~Buffer()
 	{
@@ -233,7 +233,7 @@ namespace VulkanHelpers
 		return mem;
 	}
 
-
+	// Image
 
 	Image::~Image()
 	{
@@ -540,7 +540,7 @@ namespace VulkanHelpers
 		m_DescriptorSet = ImGui_ImplVulkan_AddTexture(m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
-
+	// Shader
 
 	Shader::~Shader()
 	{
@@ -617,7 +617,7 @@ namespace VulkanHelpers
 		vkCmdDispatch(commandBuffer, dimensions.x, dimensions.y, dimensions.z);
 	}
 
-
+	// Helper functions
 
 	VkDeviceOrHostAddressKHR GetBufferDeviceAddress(const Buffer& buffer)
 	{
@@ -641,5 +641,4 @@ namespace VulkanHelpers
 
 		return result;
 	}
-
 }

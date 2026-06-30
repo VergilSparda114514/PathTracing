@@ -88,7 +88,6 @@ namespace VulkanHelpers
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
         VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
-
     private:
         // For Vulkan
 

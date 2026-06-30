@@ -334,6 +334,7 @@ void RTXApplication::CreateResultImage()
 	extent.width = NextPowerOf2(extent.width);
 	extent.height = NextPowerOf2(extent.height);
 
+	m_KernelImage.CreateRGBA32(extent);
 	m_PingImage.CreateRGBA32(extent);
 	m_PongImage.CreateRGBA32(extent);
 
@@ -844,9 +845,9 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
-	rayGenShader.LoadFromFile((s_ShadersFolder / "ray_gen.bin").string().c_str());
-	rayChitShader.LoadFromFile((s_ShadersFolder / "ray_chit.bin").string().c_str());
-	rayMissShader.LoadFromFile((s_ShadersFolder / "ray_miss.bin").string().c_str());
+	rayGenShader.LoadFromFile((s_ShadersFolder / "ray_gen.spv").string().c_str());
+	rayChitShader.LoadFromFile((s_ShadersFolder / "ray_chit.spv").string().c_str());
+	rayMissShader.LoadFromFile((s_ShadersFolder / "ray_miss.spv").string().c_str());
 	m_SBT.Initialize(1, 1, m_RTProperties.shaderGroupHandleSize, m_RTProperties.shaderGroupBaseAlignment);
 
 	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage(VK_SHADER_STAGE_RAYGEN_BIT_KHR));

@@ -2,6 +2,8 @@
 .vs/
 bin/
 bin-int/
+PTApp/Resource/Scenes
+PTApp/Resource/Textures
 
 # Files
 *.ini
@@ -11,8 +13,6 @@ bin-int/
 *.vcxproj.user
 *.vcxproj.filters
 *.sln
-*.obj
-*.mtl
 
 # Exclude
 !vendor/bin
