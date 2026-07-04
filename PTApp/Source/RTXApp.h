@@ -25,47 +25,40 @@ private:
     void CreateRTDescriptorSetsLayouts();
     void UpdateRTDescriptorSets();
     void CreateRTPipelineAndSBT();
-    void CreateComputeDescriptorSetsLayouts();
-    void UpdateComputeDescriptorSets();
-    void UpdatePingPongDescriptorSets(VkDescriptorImageInfo* ping, VkDescriptorImageInfo* pong);
     void CreateComputePipeline();
 private:
 	// RT Pipeline
-    std::array<VkDescriptorSetLayout, NUM_SETS>    m_RTDescriptorSetsLayouts;
+    std::array<VkDescriptorSetLayout, NUM_SETS>    m_RTDescriptorSetsLayouts{};
     VkPipelineLayout                m_RTPipelineLayout = VK_NULL_HANDLE;
     VkPipeline                      m_RTPipeline = VK_NULL_HANDLE;
     VkDescriptorPool                m_RTDescriptorPool = VK_NULL_HANDLE;
-    std::array<VkDescriptorSet, NUM_SETS>          m_RTDescriptorSets;
+    std::array<VkDescriptorSet, NUM_SETS>          m_RTDescriptorSets{};
 
     // Compute pipeline
-    // std::vector<std::unique_ptr<vulkanhelpers::ComputePassBase>>        mComputePasses;
-    VkPipelineLayout                m_ComputePipelineLayout = VK_NULL_HANDLE;
-    VkDescriptorPool                m_ComputeDescriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSetLayout>    m_ComputeDescriptorSetsLayouts;
-    std::vector<VkDescriptorSet>          m_ComputeDescriptorSets;
-    VulkanHelpers::ComputePass      m_ThresholdPass;
-    VulkanHelpers::ComputePass      m_DownsamplePass;
-    VulkanHelpers::ComputePass      m_FFTPass;
-    VulkanHelpers::ComputePass      m_UpsamplePass;
-    VulkanHelpers::ComputePass      m_CompositePass;
+    VulkanHelpers::ComputePass      m_FFTPaddingPass{};
+    VulkanHelpers::ComputePass      m_FFTKernelPass{};
+    VulkanHelpers::ComputePass      m_FFTPass{};
+    std::vector<VulkanHelpers::ComputePass> m_ComputePasses{};
 
     ShaderBindingTable              m_SBT;
 
     RTScene                         m_Scene;
 
     // Rendering
-    VulkanHelpers::Image            m_ResultImage;
-    VulkanHelpers::Image            m_KernelImage;
-    VulkanHelpers::Image            m_PingImage;
-    VulkanHelpers::Image            m_PongImage;
-    VkDescriptorImageInfo           m_PingDescInfo;
-    VkDescriptorImageInfo           m_PongDescInfo;
+    VulkanHelpers::Image            m_ResultImage{};
+    VulkanHelpers::Image            m_KernelImage{};
+
+    VulkanHelpers::Image            m_KernelPingImage{};
+    VulkanHelpers::Image            m_KernelPongImage{};
+
+    VulkanHelpers::Image            m_PingImage{};
+    VulkanHelpers::Image            m_PongImage{};
 
     // Camera & user input
-    VulkanHelpers::Buffer           m_LightingBuffer;
-    VulkanHelpers::Buffer           m_PostProcessBuffer;
-    VulkanHelpers::Buffer           m_CurrReservoirBuffer;
-    VulkanHelpers::Buffer           m_PrevReservoirBuffer;
+    VulkanHelpers::Buffer           m_LightingBuffer{};
+    VulkanHelpers::Buffer           m_PostProcessBuffer{};
+    VulkanHelpers::Buffer           m_CurrReservoirBuffer{};
+    VulkanHelpers::Buffer           m_PrevReservoirBuffer{};
     uint32_t                        m_Frame = 0;
     uint32_t                        m_AccumulatedFrame = 0;
 };

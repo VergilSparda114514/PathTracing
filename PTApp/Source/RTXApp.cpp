@@ -5,8 +5,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
-
 static uint32_t NextPowerOf2(uint32_t n)
 {
 	n--;
@@ -40,9 +38,33 @@ void RTXApplication::InitApp()
 	CreateRTDescriptorSetsLayouts();
 	CreateRTPipelineAndSBT();
 	UpdateRTDescriptorSets();
-	CreateComputeDescriptorSetsLayouts();
 	CreateComputePipeline();
-	UpdateComputeDescriptorSets();
+
+	{
+		VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
+
+		VkExtent3D extent = m_KernelImage.GetExtent();
+
+		uint32_t fftWidth = NextPowerOf2(extent.width);
+		uint32_t fftHeight = NextPowerOf2(extent.height);
+
+		uint32_t padWidth = (fftWidth + 31) / 32;
+		uint32_t padHeight = (fftHeight + 31) / 32;
+
+		m_FFTPaddingPass.Dispatch(commandBuffer, { padWidth, padHeight, 1u });
+
+		struct
+		{
+			int vertical = 0;
+			int inverse = 0;
+		} pushConstant;
+
+		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
+		pushConstant.vertical = 1;
+		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
+		
+		VulkanHelpers::EndSingleTimeCommandBuffer(commandBuffer);
+	}
 }
 
 void RTXApplication::FreeResources()
@@ -116,19 +138,13 @@ void RTXApplication::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 
 	// Compute pass to do postprocessing and then copy the result image to the swapchain image
 
-	UpdatePingPongDescriptorSets(&m_PingDescInfo, &m_PongDescInfo);
-
-	vkCmdBindDescriptorSets(commandBuffer,
-		VK_PIPELINE_BIND_POINT_COMPUTE,
-		m_ComputePipelineLayout, 0,
-		static_cast<uint32_t>(m_ComputeDescriptorSets.size()),
-		m_ComputeDescriptorSets.data(),
-		0, nullptr);
-
 	uint32_t width = (m_Settings.resolutionX + 9) / 10;
 	uint32_t height = (m_Settings.resolutionY + 9) / 10;
 
-	m_CompositePass.Dispatch(commandBuffer, { width, height, 1u });
+	for (const auto& pass : m_ComputePasses)
+	{
+		pass.Dispatch(commandBuffer, { width, height, 1u });
+	}
 }
 
 void RTXApplication::OnUIRender(float deltaTime)
@@ -301,7 +317,6 @@ void RTXApplication::OnResize()
 	CreateResultImage();
 
 	UpdateRTDescriptorSets();
-	UpdateComputeDescriptorSets();
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
@@ -334,17 +349,24 @@ void RTXApplication::CreateResultImage()
 	extent.width = NextPowerOf2(extent.width);
 	extent.height = NextPowerOf2(extent.height);
 
-	m_KernelImage.CreateRGBA32(extent);
 	m_PingImage.CreateRGBA32(extent);
 	m_PongImage.CreateRGBA32(extent);
 
-	m_PingDescInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	m_PingDescInfo.imageView = m_PingImage.GetImageView();
-	m_PingDescInfo.sampler = m_PingImage.GetSampler();
+	if (m_KernelImage.Load("Resource/Kernels/Octagonal512.hdr"))
+	{
+		VkImageSubresourceRange range{};
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseMipLevel = 0;
+		range.levelCount = VK_REMAINING_MIP_LEVELS;
+		range.baseArrayLayer = 0;
+		range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-	m_PongDescInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	m_PongDescInfo.imageView = m_PongImage.GetImageView();
-	m_PongDescInfo.sampler = m_PongImage.GetSampler();
+		m_KernelImage.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_KernelImage.GetFormat(), range);
+		m_KernelImage.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+		m_KernelPingImage.CreateRGBA32(m_KernelImage.GetExtent());
+		m_KernelPongImage.CreateRGBA32(m_KernelImage.GetExtent());
+	}
 
 	uint32_t size = m_Settings.resolutionX * m_Settings.resolutionY;
 
@@ -845,9 +867,9 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
-	rayGenShader.LoadFromFile((s_ShadersFolder / "ray_gen.spv").string().c_str());
-	rayChitShader.LoadFromFile((s_ShadersFolder / "ray_chit.spv").string().c_str());
-	rayMissShader.LoadFromFile((s_ShadersFolder / "ray_miss.spv").string().c_str());
+	rayGenShader.LoadFromFile("ray_gen.spv");
+	rayChitShader.LoadFromFile("ray_chit.spv");
+	rayMissShader.LoadFromFile("ray_miss.spv");
 	m_SBT.Initialize(1, 1, m_RTProperties.shaderGroupHandleSize, m_RTProperties.shaderGroupBaseAlignment);
 
 	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage(VK_SHADER_STAGE_RAYGEN_BIT_KHR));
@@ -869,283 +891,23 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
 }
 
-void RTXApplication::CreateComputeDescriptorSetsLayouts()
-{
-	m_ComputeDescriptorSets.resize(2);
-	m_ComputeDescriptorSetsLayouts.resize(2);
-
-	// set 0:
-	// binding 0  ->  Result Image
-	// binding 1  ->  Final Image
-	// binding 2  ->  Post Process Buffer
-
-	const VkDescriptorBindingFlags flag = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-
-	VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
-	bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-	bindingFlags.pNext = nullptr;
-	bindingFlags.pBindingFlags = &flag;
-	bindingFlags.bindingCount = 1;
-
-	VkDescriptorSetLayoutCreateInfo setLayoutInfo{};
-	setLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	setLayoutInfo.pNext = &bindingFlags;
-	setLayoutInfo.flags = 0;
-
-	///////////////////////////////////////////////////////////
-
-	VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
-	resultImageLayoutBinding.binding = 0;
-	resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	resultImageLayoutBinding.descriptorCount = 1;
-	resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	resultImageLayoutBinding.pImmutableSamplers = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkDescriptorSetLayoutBinding finalImageLayoutBinding{};
-	finalImageLayoutBinding.binding = 1;
-	finalImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	finalImageLayoutBinding.descriptorCount = 1;
-	finalImageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	finalImageLayoutBinding.pImmutableSamplers = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkDescriptorSetLayoutBinding ppDataBufferBinding{};
-	ppDataBufferBinding.binding = 2;
-	ppDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ppDataBufferBinding.descriptorCount = 1;
-	ppDataBufferBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	ppDataBufferBinding.pImmutableSamplers = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	std::vector<VkDescriptorSetLayoutBinding> bindings =
-	{
-		resultImageLayoutBinding,
-		finalImageLayoutBinding,
-		ppDataBufferBinding,
-	};
-
-	setLayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	setLayoutInfo.pBindings = bindings.data();
-
-	VkResult error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_ComputeDescriptorSetsLayouts[0]);
-	CHECK_VK_ERROR(error, "vkCreateDescriptorSetLayout");
-
-	// set 1:
-	// binding 0  ->  Ping Image
-	// binding 1  ->  Pong Image
-
-	VkDescriptorSetLayoutBinding pingImageLayoutBinding{};
-	pingImageLayoutBinding.binding = 0;
-	pingImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	pingImageLayoutBinding.descriptorCount = 1;
-	pingImageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	pingImageLayoutBinding.pImmutableSamplers = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkDescriptorSetLayoutBinding pongImageLayoutBinding{};
-	pongImageLayoutBinding.binding = 1;
-	pongImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	pongImageLayoutBinding.descriptorCount = 1;
-	pongImageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	pongImageLayoutBinding.pImmutableSamplers = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	bindings =
-	{
-		pingImageLayoutBinding,
-		pongImageLayoutBinding,
-	};
-
-	setLayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	setLayoutInfo.pBindings = bindings.data();
-
-	error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_ComputeDescriptorSetsLayouts[1]);
-	CHECK_VK_ERROR(error, "vkCreateDescriptorSetLayout");
-}
-
-void RTXApplication::UpdateComputeDescriptorSets()
-{
-	std::vector<VkDescriptorPoolSize> poolSizes =
-	{
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2 },                    // Result and Output image
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },					// Post processing data
-		//
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2 },                    // Ping and Pong image
-	};
-
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
-	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descriptorPoolCreateInfo.pNext = nullptr;
-	descriptorPoolCreateInfo.flags = 0;
-	descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(m_ComputeDescriptorSets.size());
-	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
-
-	VkResult error = vkCreateDescriptorPool(m_Device, &descriptorPoolCreateInfo, nullptr, &m_ComputeDescriptorPool);
-	CHECK_VK_ERROR(error, "vkCreateDescriptorPool");
-
-	///////////////////////////////////////////////////////////
-
-	std::vector<uint32_t> variableDescriptorCounts =
-	{
-		3, // Result & Offscreen image + Post Process Buffer
-		2, // Ping & Pong
-	};
-
-	VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo{};
-	variableDescriptorCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-	variableDescriptorCountInfo.pNext = nullptr;
-	variableDescriptorCountInfo.descriptorSetCount = static_cast<uint32_t>(variableDescriptorCounts.size());
-	variableDescriptorCountInfo.pDescriptorCounts = variableDescriptorCounts.data(); // actual number of descriptors
-
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
-	descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descriptorSetAllocateInfo.pNext = &variableDescriptorCountInfo;
-	descriptorSetAllocateInfo.descriptorPool = m_ComputeDescriptorPool;
-	descriptorSetAllocateInfo.descriptorSetCount = static_cast<uint32_t>(m_ComputeDescriptorSetsLayouts.size());
-	descriptorSetAllocateInfo.pSetLayouts = m_ComputeDescriptorSetsLayouts.data();
-
-	error = vkAllocateDescriptorSets(m_Device, &descriptorSetAllocateInfo, m_ComputeDescriptorSets.data());
-	CHECK_VK_ERROR(error, "vkAllocateDescriptorSets");
-
-	///////////////////////////////////////////////////////////
-
-	VkWriteDescriptorSet resultImageWrite{};
-	resultImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	resultImageWrite.pNext = nullptr;
-	resultImageWrite.dstSet = m_ComputeDescriptorSets[0];
-	resultImageWrite.dstBinding = 0;
-	resultImageWrite.dstArrayElement = 0;
-	resultImageWrite.descriptorCount = 1;
-	resultImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-
-	VkDescriptorImageInfo resultImageDescriptorInfo{};
-	resultImageDescriptorInfo.sampler = VK_NULL_HANDLE;
-	resultImageDescriptorInfo.imageView = m_ResultImage.GetImageView();
-	resultImageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-	resultImageWrite.pImageInfo = &resultImageDescriptorInfo;
-
-	resultImageWrite.pBufferInfo = nullptr;
-	resultImageWrite.pTexelBufferView = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkWriteDescriptorSet finalImageWrite{};
-	finalImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	finalImageWrite.pNext = nullptr;
-	finalImageWrite.dstSet = m_ComputeDescriptorSets[0];
-	finalImageWrite.dstBinding = 1;
-	finalImageWrite.dstArrayElement = 0;
-	finalImageWrite.descriptorCount = 1;
-	finalImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-
-	VkDescriptorImageInfo finalImageDescriptorInfo{};
-	finalImageDescriptorInfo.sampler = VK_NULL_HANDLE;
-	finalImageDescriptorInfo.imageView = m_OffscreenImage.GetImageView();
-	finalImageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-	finalImageWrite.pImageInfo = &finalImageDescriptorInfo;
-
-	finalImageWrite.pBufferInfo = nullptr;
-	finalImageWrite.pTexelBufferView = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkWriteDescriptorSet ppDataBufferWrite{};
-	ppDataBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	ppDataBufferWrite.pNext = nullptr;
-	ppDataBufferWrite.dstSet = m_ComputeDescriptorSets[0];
-	ppDataBufferWrite.dstBinding = 2;
-	ppDataBufferWrite.dstArrayElement = 0;
-	ppDataBufferWrite.descriptorCount = 1;
-	ppDataBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ppDataBufferWrite.pImageInfo = nullptr;
-
-	VkDescriptorBufferInfo ppDataBufferInfo{};
-	ppDataBufferInfo.buffer = m_PostProcessBuffer.GetBuffer();
-	ppDataBufferInfo.offset = 0;
-	ppDataBufferInfo.range = m_PostProcessBuffer.GetSize();
-
-	ppDataBufferWrite.pBufferInfo = &ppDataBufferInfo;
-
-	ppDataBufferWrite.pTexelBufferView = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	// UpdatePingPongDescriptorSets(&m_PingDescInfo, &m_PongDescInfo);
-
-	///////////////////////////////////////////////////////////
-
-	std::vector<VkWriteDescriptorSet> descriptorWrites =
-	{
-		resultImageWrite,
-		finalImageWrite,
-		ppDataBufferWrite,
-	};
-
-	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
-}
-
-void RTXApplication::UpdatePingPongDescriptorSets(VkDescriptorImageInfo* ping, VkDescriptorImageInfo* pong)
-{
-	VkWriteDescriptorSet pingImageWrite{};
-	pingImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	pingImageWrite.pNext = nullptr;
-	pingImageWrite.dstSet = m_ComputeDescriptorSets[1];
-	pingImageWrite.dstBinding = 0;
-	pingImageWrite.dstArrayElement = 0;
-	pingImageWrite.descriptorCount = 1;
-	pingImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	pingImageWrite.pImageInfo = ping;
-	pingImageWrite.pBufferInfo = nullptr;
-	pingImageWrite.pTexelBufferView = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	VkWriteDescriptorSet pongImageWrite{};
-	pongImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	pongImageWrite.pNext = nullptr;
-	pongImageWrite.dstSet = m_ComputeDescriptorSets[1];
-	pongImageWrite.dstBinding = 1;
-	pongImageWrite.dstArrayElement = 0;
-	pongImageWrite.descriptorCount = 1;
-	pongImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	pongImageWrite.pImageInfo = pong;
-	pongImageWrite.pBufferInfo = nullptr;
-	pongImageWrite.pTexelBufferView = nullptr;
-
-	///////////////////////////////////////////////////////////
-
-	std::vector<VkWriteDescriptorSet> descriptorWrites =
-	{
-		pingImageWrite,
-		pongImageWrite,
-	};
-
-	vkUpdateDescriptorSets(m_Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, VK_NULL_HANDLE);
-}
-
 void RTXApplication::CreateComputePipeline()
 {
-	VkPipelineLayoutCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	createInfo.pNext = nullptr;
-	createInfo.setLayoutCount = static_cast<uint32_t>(m_ComputeDescriptorSetsLayouts.size());
-	createInfo.pSetLayouts = m_ComputeDescriptorSetsLayouts.data();
+	m_FFTPaddingPass
+		.BindSampler(m_KernelImage)
+		.BindImage(m_KernelPingImage)
+		.CreatePipeline("pad.spv");
 
-	VkResult error = vkCreatePipelineLayout(m_Device, &createInfo, nullptr, &m_ComputePipelineLayout);
-	CHECK_VK_ERROR(error, "vkCreatePipelineLayout");
+	m_FFTKernelPass
+		.BindSampler(m_KernelPingImage)
+		.BindImage(m_KernelPongImage)
+		.CreatePipeline("fft_kernel.spv");
 
-	// m_ThresholdPass.CreatePipeline(s_ShadersFolder / "threshold.spv", m_ComputePipelineLayout);
-	// m_DownsamplePass.CreatePipeline(s_ShadersFolder / "downsample.spv", m_ComputePipelineLayout);
-	// m_FFTPass.CreatePipeline(s_ShadersFolder / "fft.spv", m_ComputePipelineLayout);
-	// m_UpsamplePass.CreatePipeline(s_ShadersFolder / "upsample.spv", m_ComputePipelineLayout);
-	m_CompositePass.CreatePipeline(s_ShadersFolder / "composite.spv", m_ComputePipelineLayout);
+	// m_FFTPass.CreatePipeline("fft.spv");
+
+	m_ComputePasses.emplace_back()
+		.BindImage(m_ResultImage)
+		.BindImage(m_OffscreenImage)
+		.BindUniform(m_PostProcessBuffer)
+		.CreatePipeline("composite.spv");
 }

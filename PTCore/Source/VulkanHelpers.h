@@ -77,7 +77,7 @@ namespace VulkanHelpers
         VkResult	CreateRGBA32(VkExtent3D extent);
 
         void        Destroy();
-        bool        Load(const char* fileName);
+        bool        Load(const std::filesystem::path& fileName);
         VkResult    CreateImageView(VkImageViewType viewType, VkFormat format, VkImageSubresourceRange subresourceRange);
         VkResult    CreateSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode);
         void        CreateDescriptorSet();
@@ -88,6 +88,7 @@ namespace VulkanHelpers
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
         VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
+		VkExtent3D GetExtent() const { return { m_Width, m_Height, 1u }; }
     private:
         // For Vulkan
 
@@ -110,7 +111,7 @@ namespace VulkanHelpers
     public:
         ~Shader();
 
-        bool    LoadFromFile(const char* fileName);
+        bool    LoadFromFile(const std::filesystem::path& fileName);
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage(VkShaderStageFlagBits stage);
@@ -123,24 +124,43 @@ namespace VulkanHelpers
     class ComputePass
     {
     public:
-        virtual ~ComputePass() = default;
+        ComputePass& BindImage(const Image& image);
+        ComputePass& BindSampler(const Image& image);
+        ComputePass& BindUniform(const Buffer& buffer);
+        ComputePass& BindBuffer(const Buffer& buffer);
 
-        void CreatePipeline(const std::filesystem::path& path, VkPipelineLayout pipelineLayout);
+        void CreatePipeline(const std::filesystem::path& path);
 
-        void Dispatch(VkCommandBuffer commandBuffer, glm::uvec3 dimensions);
-        template <class PushConstants>
-        void Dispatch(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, glm::uvec3 dimensions, const PushConstants* pc);
-    protected:
-        Shader m_Shader;
+        void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
+        template <class PushConstant>
+        void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions, const PushConstant* pc) const;
+    private:
+        static VkDescriptorSetLayoutBinding GetBinding();
+        static VkWriteDescriptorSet GetWrite();
+    private:
+        Shader m_Shader{};
+
+        VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+
+        std::vector<VkDescriptorImageInfo> m_ImageInfos{};
+        std::vector<VkDescriptorBufferInfo> m_BufferInfos{};
+
+		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBindings{};
+        std::vector<VkWriteDescriptorSet> m_DescriptorWrites{};
+
+		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_Pipeline = VK_NULL_HANDLE;
     };
 
-    template<class PushConstants>
-    inline void ComputePass::Dispatch(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, glm::uvec3 dimensions, const PushConstants* pc)
+    template <class PushConstant>
+    inline void ComputePass::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions, const PushConstant* pc) const
     {
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), pc);
-        vkCmdDispatch(commandBuffer, dimensions.x, dimensions.y, dimensions.z);
+        vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstant), pc);
+        vkCmdDispatch(commandBuffer, dimensions.width, dimensions.height, dimensions.depth);
     }
 
 

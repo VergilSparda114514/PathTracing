@@ -738,7 +738,7 @@ bool Application::InitializeSynchronization()
 	semaphoreCreatInfo.flags = 0;
 
 	VkResult error = vkCreateSemaphore(m_Device, &semaphoreCreatInfo, nullptr, &m_SemaphoreImageAcquired);
-	
+
 	if (VK_SUCCESS != error)
 	{
 		return false;

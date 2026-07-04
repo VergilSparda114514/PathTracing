@@ -1,4 +1,5 @@
 #include "VulkanHelpers.h"
+
 #include <string>
 #include <fstream>
 #include <cstring>
@@ -13,6 +14,8 @@
 #include <stb_image.h>
 
 #include <backends/imgui_impl_vulkan.h>
+
+static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
 
 namespace VulkanHelpers
 {
@@ -349,24 +352,23 @@ namespace VulkanHelpers
 		}
 	}
 
-	bool Image::Load(const char* fileName)
+	bool Image::Load(const std::filesystem::path& fileName)
 	{
 		int width, height, channels;
 		bool textureHDR = false;
 		stbi_uc* imageData = nullptr;
 
-		std::string fileNameString(fileName);
-		const std::string extension = fileNameString.substr(fileNameString.length() - 3);
+		const std::string extension = fileName.extension().string();
 
-		if (extension == "hdr")
+		if (extension == ".hdr")
 		{
 			textureHDR = true;
-			imageData = reinterpret_cast<stbi_uc*>(stbi_loadf(fileName, &width, &height, &channels, STBI_rgb_alpha));
+			imageData = reinterpret_cast<stbi_uc*>(stbi_loadf(fileName.string().c_str(), &width, &height, &channels, STBI_rgb_alpha));
 		}
 
 		else
 		{
-			imageData = stbi_load(fileName, &width, &height, &channels, STBI_rgb_alpha);
+			imageData = stbi_load(fileName.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 		}
 
 		if (imageData)
@@ -547,11 +549,11 @@ namespace VulkanHelpers
 		Destroy();
 	}
 
-	bool Shader::LoadFromFile(const char* fileName)
+	bool Shader::LoadFromFile(const std::filesystem::path& fileName)
 	{
 		bool result = false;
 
-		std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+		std::ifstream file(s_ShadersFolder / fileName, std::ios::ate | std::ios::binary);
 		if (file)
 		{
 			const size_t fileSize = static_cast<size_t>(file.tellg());
@@ -598,23 +600,223 @@ namespace VulkanHelpers
 		return createInfo;
 	}
 
-	void ComputePass::CreatePipeline(const std::filesystem::path& path, VkPipelineLayout pipelineLayout)
+	// Compute pass
+
+	ComputePass& ComputePass::BindImage(const Image& image)
 	{
-		m_Shader.LoadFromFile(path.string().c_str());
+		VkDescriptorSetLayoutBinding imageLayoutBinding = GetBinding();
+		imageLayoutBinding.binding = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+		m_DescriptorSetLayoutBindings.emplace_back(imageLayoutBinding);
+		
+		// Descriptor write
+
+		m_ImageInfos.emplace_back(image.GetSampler(), image.GetImageView(), VK_IMAGE_LAYOUT_GENERAL);
+		m_BufferInfos.emplace_back();
+
+		VkWriteDescriptorSet imageWrite = GetWrite();
+		imageWrite.dstBinding = static_cast<uint32_t>(m_DescriptorWrites.size());
+		imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+		m_DescriptorWrites.emplace_back(imageWrite);
+
+		return *this;
+	}
+
+	ComputePass& ComputePass::BindSampler(const Image& image)
+	{
+		VkDescriptorSetLayoutBinding samplerLayoutBinding = GetBinding();
+		samplerLayoutBinding.binding = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		m_DescriptorSetLayoutBindings.emplace_back(samplerLayoutBinding);
+
+		// Descriptor write
+
+		m_ImageInfos.emplace_back(image.GetSampler(), image.GetImageView(), VK_IMAGE_LAYOUT_GENERAL);
+		m_BufferInfos.emplace_back();
+
+		VkWriteDescriptorSet samplerWrite = GetWrite();
+		samplerWrite.dstBinding = static_cast<uint32_t>(m_DescriptorWrites.size());
+		samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		m_DescriptorWrites.emplace_back(samplerWrite);
+
+		return *this;
+	}
+
+	ComputePass& ComputePass::BindUniform(const Buffer& buffer)
+	{
+		VkDescriptorSetLayoutBinding uniformLayoutBinding = GetBinding();
+		uniformLayoutBinding.binding = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		uniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		m_DescriptorSetLayoutBindings.emplace_back(uniformLayoutBinding);
+
+		// Descriptor write
+
+		m_ImageInfos.emplace_back();
+		m_BufferInfos.emplace_back(buffer.GetBuffer(), 0, buffer.GetSize());
+
+		VkWriteDescriptorSet uniformWrite = GetWrite();
+		uniformWrite.dstBinding = static_cast<uint32_t>(m_DescriptorWrites.size());
+		uniformWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		m_DescriptorWrites.emplace_back(uniformWrite);
+
+		return *this;
+	}
+
+	ComputePass& ComputePass::BindBuffer(const Buffer& buffer)
+	{
+		VkDescriptorSetLayoutBinding bufferLayoutBinding = GetBinding();
+		bufferLayoutBinding.binding = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		bufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+		m_DescriptorSetLayoutBindings.emplace_back(bufferLayoutBinding);
+
+		// Descriptor write
+
+		m_ImageInfos.emplace_back();
+		m_BufferInfos.emplace_back(buffer.GetBuffer(), 0, buffer.GetSize());
+
+		VkWriteDescriptorSet bufferWrite = GetWrite();
+		bufferWrite.dstBinding = static_cast<uint32_t>(m_DescriptorWrites.size());
+		bufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+		m_DescriptorWrites.emplace_back(bufferWrite);
+
+		return *this;
+	}
+
+	void ComputePass::CreatePipeline(const std::filesystem::path& path)
+	{
+		// Create descriptor set layout
+
+		constexpr VkDescriptorBindingFlags flag = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+		VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+		bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+		bindingFlags.pNext = nullptr;
+		bindingFlags.bindingCount = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		bindingFlags.pBindingFlags = &flag;
+
+		VkDescriptorSetLayoutCreateInfo setLayoutInfo{};
+		setLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		setLayoutInfo.pNext = &bindingFlags;
+		setLayoutInfo.flags = 0;
+		setLayoutInfo.bindingCount = static_cast<uint32_t>(m_DescriptorSetLayoutBindings.size());
+		setLayoutInfo.pBindings = m_DescriptorSetLayoutBindings.data();
+
+		VkResult error = vkCreateDescriptorSetLayout(__details::s_Device, &setLayoutInfo, nullptr, &m_DescriptorSetLayout);
+		CHECK_VK_ERROR(error, "vkCreateDescriptorSetLayout");
+
+		// Create descriptor pool
+
+		std::vector<VkDescriptorPoolSize> poolSizes{};
+		poolSizes.reserve(m_DescriptorSetLayoutBindings.size());
+
+		for (const auto& binding : m_DescriptorSetLayoutBindings)
+		{
+			poolSizes.emplace_back(binding.descriptorType, binding.descriptorCount);
+		}
+
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
+		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptorPoolCreateInfo.pNext = nullptr;
+		descriptorPoolCreateInfo.flags = 0;
+		descriptorPoolCreateInfo.maxSets = 1;
+		descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
+
+		error = vkCreateDescriptorPool(__details::s_Device, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool);
+		CHECK_VK_ERROR(error, "vkCreateDescriptorPool");
+
+		// Allocate descriptor sets
+
+		const uint32_t variableDescriptorCounts = 1;
+
+		VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountInfo{};
+		variableDescriptorCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+		variableDescriptorCountInfo.pNext = nullptr;
+		variableDescriptorCountInfo.descriptorSetCount = 1;
+		variableDescriptorCountInfo.pDescriptorCounts = &variableDescriptorCounts; // actual number of descriptors
+
+		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
+		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocateInfo.pNext = &variableDescriptorCountInfo;
+		descriptorSetAllocateInfo.descriptorPool = m_DescriptorPool;
+		descriptorSetAllocateInfo.descriptorSetCount = 1;
+		descriptorSetAllocateInfo.pSetLayouts = &m_DescriptorSetLayout;
+
+		error = vkAllocateDescriptorSets(__details::s_Device, &descriptorSetAllocateInfo, &m_DescriptorSet);
+		CHECK_VK_ERROR(error, "vkAllocateDescriptorSets");
+
+		for (auto& write : m_DescriptorWrites)
+		{
+			write.dstSet = m_DescriptorSet;
+			write.pImageInfo = &m_ImageInfos[write.dstBinding];
+			write.pBufferInfo = &m_BufferInfos[write.dstBinding];
+		}
+
+		// Update descriptor set
+
+		vkUpdateDescriptorSets(__details::s_Device, static_cast<uint32_t>(m_DescriptorWrites.size()), m_DescriptorWrites.data(), 0, VK_NULL_HANDLE);
+
+		// Create pipeline layout
+
+		VkPipelineLayoutCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.setLayoutCount = 1;
+		createInfo.pSetLayouts = &m_DescriptorSetLayout;
+
+		error = vkCreatePipelineLayout(__details::s_Device, &createInfo, nullptr, &m_PipelineLayout);
+		CHECK_VK_ERROR(error, "vkCreatePipelineLayout");
+
+		// Create pipeline
+
+		m_Shader.LoadFromFile(path);
 
 		VkComputePipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = m_Shader.GetShaderStage(VK_SHADER_STAGE_COMPUTE_BIT);
 
-		VkResult error = vkCreateComputePipelines(__details::s_Device, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
+		error = vkCreateComputePipelines(__details::s_Device, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
 	}
 
-	void ComputePass::Dispatch(VkCommandBuffer commandBuffer, glm::uvec3 dimensions)
+	void ComputePass::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const
 	{
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
-		vkCmdDispatch(commandBuffer, dimensions.x, dimensions.y, dimensions.z);
+		vkCmdDispatch(commandBuffer, dimensions.width, dimensions.height, dimensions.depth);
+	}
+
+	VkDescriptorSetLayoutBinding ComputePass::GetBinding()
+	{
+		VkDescriptorSetLayoutBinding binding{};
+		binding.descriptorCount = 1;
+		binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		binding.pImmutableSamplers = nullptr;
+
+		return binding;
+	}
+
+	VkWriteDescriptorSet ComputePass::GetWrite()
+	{
+		VkWriteDescriptorSet write{};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.pNext = nullptr;
+		write.dstArrayElement = 0;
+		write.descriptorCount = 1;
+		write.pImageInfo = nullptr;
+		write.pBufferInfo = nullptr;
+		write.pTexelBufferView = nullptr;
+
+		return write;
 	}
 
 	// Helper functions

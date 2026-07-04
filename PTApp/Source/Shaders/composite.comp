@@ -6,7 +6,6 @@
 #include "Random.h"
 
 layout(set = 0, binding = 0, rgba32f) uniform image2D ResultImage;
-layout(set = 1, binding = 0, rgba32f) uniform image2D PingImage;
 layout(set = 0, binding = 1, rgba8)   uniform image2D FinalImage;
 
 layout(set = 0, binding = 2, std140) uniform PostProcessData {

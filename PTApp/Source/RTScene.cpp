@@ -133,7 +133,7 @@ void RTScene::Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 	LoadScene(s_ScenesFolder / scenePath);
 	BuildTLAS(device, cmdPool, queue);
 
-	m_EnvTexture.Load((s_EnvsFolder / envPath).string().c_str());
+	m_EnvTexture.Load(s_EnvsFolder / envPath);
 
 	VkImageSubresourceRange subresourceRange{};
 	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -385,6 +385,8 @@ void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 
 	scene["Scene Path"] = scenePath;
 	scene["Environment Path"] = envPath;
+	scene["Camera Position"] = camera.position;
+	scene["Camera Direction"] = camera.direction;
 
 	std::ofstream out(m_ScenePath);
 	out << scene;

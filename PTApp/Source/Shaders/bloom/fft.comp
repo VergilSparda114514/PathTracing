@@ -12,18 +12,15 @@
 
 #include "../commons.h"
 
-layout(constant_id = 0) const int SIZE;
+layout(constant_id = 0) const int SIZE = 4096;
 
 layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D input_img;
-layout(rgba32f, binding = 1) uniform image2D fft_img;
-#ifndef KERNEL_GENERATION
-layout(binding = 2) uniform sampler2D kernel;
-#endif
+layout(set = 1, binding = 0) uniform sampler2D PingImage;
+layout(set = 1, binding = 1, rgba32f) uniform image2D PongImage;
+layout(binding = 2) uniform sampler2D KernalImage;
 
-layout(push_constant) uniform PushConstant {
-	int size;
+layout(push_constant, std140) uniform PushConstant {
 	int vertical;
 	int inverseFFT;
 } pc;
@@ -76,7 +73,7 @@ void fft_shared_img(bool is_rg, ivec2 coords[RADIX], inout vec2 data[RADIX])
 		{
 			for (int r = 0; r < RADIX; r++)
 			{
-				data[r] = imageLoad(fft_img, coords[r]).rg;
+				data[r] = imageLoad(PongImage, coords[r]).rg;
 			}
 		}
 
@@ -84,7 +81,7 @@ void fft_shared_img(bool is_rg, ivec2 coords[RADIX], inout vec2 data[RADIX])
 		{
 			for (int r = 0; r < RADIX; r++)
 			{
-				data[r] = imageLoad(fft_img, coords[r]).ba;
+				data[r] = imageLoad(PongImage, coords[r]).ba;
 			}
 		}
 	}
@@ -95,7 +92,7 @@ void fft_shared_img(bool is_rg, ivec2 coords[RADIX], inout vec2 data[RADIX])
 		{
 			for (int r = 0; r < RADIX; r++)
 			{
-				data[r] = texelFetch(input_img, coords[r], 0).rg;
+				data[r] = texelFetch(PingImage, coords[r], 0).rg;
 			}
 		}
 
@@ -103,7 +100,7 @@ void fft_shared_img(bool is_rg, ivec2 coords[RADIX], inout vec2 data[RADIX])
 		{
 			for (int r = 0; r < RADIX; r++)
 			{
-				data[r] = texelFetch(input_img, coords[r], 0).ba;
+				data[r] = texelFetch(PingImage, coords[r], 0).ba;
 			}
 		}
 	}
@@ -139,9 +136,7 @@ void fft_shared_img(bool is_rg, ivec2 coords[RADIX], inout vec2 data[RADIX])
 void main()
 {
 	ivec2 coords[RADIX];
-#ifdef KERNEL_GENERATION
-	ivec2 coords_old[RADIX];
-#endif
+
 	const uint N_DIV_RADIX = gl_WorkGroupSize.x;
 	const uint N = RADIX * gl_WorkGroupSize.x;
 	ivec2 IMG_DIMS;
@@ -165,45 +160,19 @@ void main()
 			coords[r] =
 				ivec2(gl_GlobalInvocationID.x % N_DIV_RADIX + r * N_DIV_RADIX, gl_GlobalInvocationID.x / N_DIV_RADIX);
 		}
-#ifdef KERNEL_GENERATION
-		coords_old = coords;
-
-		for (int r = 0; r < RADIX; r++)
-		{
-			coords[r] = (coords[r] - ivec2(IMG_DIMS / 2 - 1) + ivec2(IMG_DIMS - 1)) % IMG_DIMS;
-		}
-#endif
 	}
+
 	vec2 data_rg[RADIX], data_ba[RADIX];
 	fft_shared_img(true, coords, data_rg);
 	fft_shared_img(false, coords, data_ba);
-#ifdef KERNEL_GENERATION
-	if (pc.vertical == 0)
-	{
-		for (int r = 0; r < RADIX; r++)
-		{
-			imageStore(fft_img, coords_old[r], vec4(data_rg[r], data_ba[r]));
-		}
-		return;
-	}
-	
-	else
-	{
-		// Set imaginary parts to 0
-		for (int r = 0; r < RADIX; r++)
-		{
-			data_rg[r].y = 0;
-			data_ba[r].y = 0;
-		}
-	}
-#else
+
 	if (pc.vertical == 1 && pc.inverseFFT == 0)
 	{
 		vec4 kernel_vals[RADIX];
 
 		for (int r = 0; r < RADIX; r++)
 		{
-			kernel_vals[r] = texelFetch(kernel, coords[r], 0).rgba;
+			kernel_vals[r] = texelFetch(KernalImage, coords[r], 0).rgba;
 		}
 		// Not necessary since we're applying 2 in 1 trick
 		// rg.xy = complex_mul(rg.xy, kernel_val.rg);
@@ -218,9 +187,9 @@ void main()
 			data_ba[r] *= kernel_vals[r].z;
 		}
 	}
-#endif
+
 	for (int r = 0; r < RADIX; r++)
 	{
-		imageStore(fft_img, coords[r], vec4(data_rg[r], data_ba[r]));
+		imageStore(PongImage, coords[r], vec4(data_rg[r], data_ba[r]));
 	}
 }
