@@ -4,6 +4,8 @@
 #include "VKKHR.h"
 
 #include <fstream>
+#include <algorithm>
+#include <execution>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #ifndef _DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
@@ -175,75 +177,82 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 
 		printf("Loading Scene...\n");
 
-		for (size_t meshIdx = 0; meshIdx < shapes.size(); meshIdx++)
+		std::vector<size_t> iterator(shapes.size(), 0);
+
+		for (size_t i = 0; i < shapes.size(); i++)
 		{
-			RTMesh& mesh = m_Meshes[meshIdx];
-			const auto& shape = shapes[meshIdx];
+			iterator[i] = i;
+		}
 
-			mesh.name = shape.name;
-
-			const size_t numFaces = shape.mesh.num_face_vertices.size();
-			const size_t numVertices = numFaces * 3;
-
-			mesh.SetNumVertices(numVertices);
-			mesh.SetNumFaces(numFaces);
-
-			const size_t positionsBufferSize = numVertices * sizeof(vec3);
-			const size_t indicesBufferSize = numFaces * 3 * sizeof(uint32_t);
-			const size_t facesBufferSize = numFaces * sizeof(FaceAttribute);
-			const size_t attribsBufferSize = numVertices * sizeof(VertexAttribute);
-
-			mesh.CreateBuffers(positionsBufferSize, indicesBufferSize, facesBufferSize, attribsBufferSize);
-
-			vec3* positions = reinterpret_cast<vec3*>(mesh.GetPositionsBuffer().Map());
-			uint32_t* indices = reinterpret_cast<uint32_t*>(mesh.GetIndicesBuffer().Map());
-			FaceAttribute* faces = reinterpret_cast<FaceAttribute*>(mesh.GetFacesBuffer().Map());
-			VertexAttribute* attribs = reinterpret_cast<VertexAttribute*>(mesh.GetAttribsBuffer().Map());
-
-			size_t vIdx = 0;
-			for (size_t face = 0; face < numFaces; face++)
+		std::for_each(std::execution::par, iterator.begin(), iterator.end(), [this, shapes, &attrib](size_t meshIdx)
 			{
-				assert(shape.mesh.num_face_vertices[face] == 3);
+				RTMesh& mesh = m_Meshes[meshIdx];
+				const tinyobj::basic_shape_t<>& shape = shapes[meshIdx];
 
-				for (size_t j = 0; j < 3; j++, vIdx++)
+				mesh.name = shape.name;
+
+				const size_t numFaces = shape.mesh.num_face_vertices.size();
+				const size_t numVertices = numFaces * 3;
+
+				mesh.SetNumVertices(numVertices);
+				mesh.SetNumFaces(numFaces);
+
+				const size_t positionsBufferSize = numVertices * sizeof(vec3);
+				const size_t indicesBufferSize = numFaces * 3 * sizeof(uint32_t);
+				const size_t facesBufferSize = numFaces * sizeof(FaceAttribute);
+				const size_t attribsBufferSize = numVertices * sizeof(VertexAttribute);
+
+				mesh.CreateBuffers(positionsBufferSize, indicesBufferSize, facesBufferSize, attribsBufferSize);
+
+				vec3* positions = reinterpret_cast<vec3*>(mesh.GetPositionsBuffer().Map());
+				uint32_t* indices = reinterpret_cast<uint32_t*>(mesh.GetIndicesBuffer().Map());
+				FaceAttribute* faces = reinterpret_cast<FaceAttribute*>(mesh.GetFacesBuffer().Map());
+				VertexAttribute* attribs = reinterpret_cast<VertexAttribute*>(mesh.GetAttribsBuffer().Map());
+
+				size_t vIdx = 0;
+				for (size_t face = 0; face < numFaces; face++)
 				{
-					const tinyobj::index_t& i = shape.mesh.indices[vIdx];
+					assert(shape.mesh.num_face_vertices[face] == 3);
 
-					positions[vIdx] = *reinterpret_cast<vec3*>(&attrib.vertices[3 * i.vertex_index]);
-					attribs[vIdx].normal = *reinterpret_cast<vec3*>(&attrib.normals[3 * i.normal_index]);
-
-					try
+					for (size_t j = 0; j < 3; j++, vIdx++)
 					{
-						attribs[vIdx].uv = *reinterpret_cast<vec2*>(&attrib.texcoords.at(2 * i.texcoord_index));
+						const tinyobj::index_t& i = shape.mesh.indices[vIdx];
+
+						positions[vIdx] = *reinterpret_cast<vec3*>(&attrib.vertices[3 * i.vertex_index]);
+						attribs[vIdx].normal = *reinterpret_cast<vec3*>(&attrib.normals[3 * i.normal_index]);
+
+						try
+						{
+							attribs[vIdx].uv = *reinterpret_cast<vec2*>(&attrib.texcoords.at(2 * i.texcoord_index));
+						}
+
+						catch (const std::exception&)
+						{
+							attribs[vIdx].uv = vec2(0.0f, 0.0f);
+						}
 					}
 
-					catch (const std::exception&)
-					{
-						attribs[vIdx].uv = vec2(0.0f, 0.0f);
-					}
+					const uint32_t a = static_cast<uint32_t>(3 * face + 0);
+					const uint32_t b = static_cast<uint32_t>(3 * face + 1);
+					const uint32_t c = static_cast<uint32_t>(3 * face + 2);
+
+					indices[a] = a;
+					indices[b] = b;
+					indices[c] = c;
+
+					faces[face].face = uvec3(a, b, c);
+					faces[face].matID = shape.mesh.material_ids[face];
 				}
 
-				const uint32_t a = static_cast<uint32_t>(3 * face + 0);
-				const uint32_t b = static_cast<uint32_t>(3 * face + 1);
-				const uint32_t c = static_cast<uint32_t>(3 * face + 2);
+				ComputeTangent(attribs, positions, numVertices, indices, numFaces);
 
-				indices[a] = a;
-				indices[b] = b;
-				indices[c] = c;
+				mesh.SetPositionToGeometricCentre();
 
-				faces[face].face = uvec3(a, b, c);
-				faces[face].matID = shape.mesh.material_ids[face];
-			}
-
-			ComputeTangent(attribs, positions, numVertices, indices, numFaces);
-
-			mesh.SetPositionToGeometricCentre();
-
-			mesh.GetIndicesBuffer().Unmap();
-			mesh.GetFacesBuffer().Unmap();
-			mesh.GetAttribsBuffer().Unmap();
-			mesh.GetPositionsBuffer().Unmap();
-		}
+				mesh.GetIndicesBuffer().Unmap();
+				mesh.GetFacesBuffer().Unmap();
+				mesh.GetAttribsBuffer().Unmap();
+				mesh.GetPositionsBuffer().Unmap();
+			});
 
 		VkImageSubresourceRange subresourceRange{};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
