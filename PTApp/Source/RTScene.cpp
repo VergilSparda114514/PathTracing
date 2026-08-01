@@ -52,7 +52,7 @@ struct YAML::convert<glm::vec<Length, Type, Qualifier>>
 	{
 		Node node{ NodeType::Sequence };
 
-		for (size_t i = 0; i < rhs.length(); i++)
+		for (size_t i = 0; i < Length; i++)
 		{
 			node.push_back(rhs[i]);
 		}
@@ -67,10 +67,39 @@ struct YAML::convert<glm::vec<Length, Type, Qualifier>>
 			return false;
 		}
 
-		for (size_t i = 0; i < node.size(); i++)
+		for (size_t i = 0; i < Length; i++)
 		{
 			rhs[i] = node[i].as<Type>();
 		}
+
+		return true;
+	}
+};
+
+template <>
+struct YAML::convert<RTMesh>
+{
+	static Node encode(const RTMesh& rhs)
+	{
+		Node node{ NodeType::Map };
+
+		node["Position"] = rhs.position;
+		node["Rotation"] = rhs.rotation;
+		node["Scale"] = rhs.scale;
+
+		return node;
+	}
+
+	static bool decode(const Node& node, RTMesh& rhs)
+	{
+		if (!node.IsMap())
+		{
+			return false;
+		}
+
+		rhs.position = node["Position"].as<glm::vec3>();
+		rhs.rotation = node["Rotation"].as<glm::vec3>();
+		rhs.scale = node["Scale"].as<glm::vec3>();
 
 		return true;
 	}
@@ -394,8 +423,11 @@ void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 
 	scene["Scene Path"] = scenePath;
 	scene["Environment Path"] = envPath;
+
 	scene["Camera Position"] = camera.position;
 	scene["Camera Direction"] = camera.direction;
+
+	scene["Meshes"] = YAML::Node{ YAML::NodeType::Sequence };
 
 	std::ofstream out(m_ScenePath);
 	out << scene;
@@ -422,6 +454,15 @@ void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 	camera.direction = scene["Camera Direction"].as<glm::vec3>();
 
 	Load(device, cmdPool, queue, scenePath, envPath);
+
+	for (int i = 0; i < scene["Meshes"].size(); i++)
+	{
+		RTMesh mesh = scene["Meshes"][i].as<RTMesh>();
+
+		m_Meshes[i].position = mesh.position;
+		m_Meshes[i].rotation = mesh.rotation;
+		m_Meshes[i].scale = mesh.scale;
+	}
 }
 
 void RTScene::Save()
@@ -430,6 +471,11 @@ void RTScene::Save()
 
 	scene["Camera Position"] = camera.position;
 	scene["Camera Direction"] = camera.direction;
+
+	for (const auto& mesh : m_Meshes)
+	{
+		scene["Meshes"].push_back(mesh);
+	}
 
 	std::ofstream out(m_ScenePath);
 	out << scene;

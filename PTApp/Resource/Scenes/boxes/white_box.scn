@@ -3,8 +3,9 @@ Environment Path: studio_garden_2k.jpg
 Camera Position:
   - 0
   - 2.5
-  - 7
+  - 7.5
 Camera Direction:
   - 0
   - 0
   - -1
+Meshes: [{Position: [0, 3.6111112, -0.2777778], Rotation: [0, 0, 0], Scale: [1, 1, 1]}, {Position: [1.2499167, 0.6124874, 1.0000567], Rotation: [0, 0, 0], Scale: [1, 1, 1]}, {Position: [-0.7508172, 0.7481374, -0.99969274], Rotation: [0, 0, 0], Scale: [1, 1, 1]}]
