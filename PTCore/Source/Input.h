@@ -1,3 +1,5 @@
+// https://github.com/StudioCherno/Walnut
+
 #pragma once
 
 #include "VulkanHelpers.h"
@@ -7,7 +9,7 @@
 class Input
 {
 public:
-	static bool IsKeyDown(KeyCode keycode);
+	static bool GetKey(KeyCode keycode);
 	static bool IsMouseButtonDown(MouseButton button);
 
 	static glm::vec2 GetMousePosition();

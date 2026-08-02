@@ -427,13 +427,16 @@ void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 	scene["Camera Position"] = camera.position;
 	scene["Camera Direction"] = camera.direction;
 
-	scene["Meshes"] = YAML::Node{ YAML::NodeType::Sequence };
-
 	std::ofstream out(m_ScenePath);
 	out << scene;
 	out.close();
 
 	Load(device, cmdPool, queue, scenePath, envPath);
+
+	for (const auto& mesh : m_Meshes)
+	{
+		scene["Meshes"].push_back(mesh);
+	}
 }
 
 void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& sceneFilePath)
@@ -471,6 +474,8 @@ void RTScene::Save()
 
 	scene["Camera Position"] = camera.position;
 	scene["Camera Direction"] = camera.direction;
+
+	scene["Meshes"] = YAML::Node{ YAML::NodeType::Sequence };
 
 	for (const auto& mesh : m_Meshes)
 	{

@@ -5,6 +5,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <Input.h>
+
 static uint32_t NextPowerOf2(uint32_t n)
 {
 	n--;
@@ -19,20 +21,20 @@ static uint32_t NextPowerOf2(uint32_t n)
 void RTXApplication::InitSettings()
 {
 	m_Settings.name = "Ray Tracing";
-	m_Settings.fullscreen = false;
+	m_Settings.fullscreen = true;
 	m_Settings.enableValidation = true;
 	m_Settings.enableVSync = false;
 	m_Settings.supportRaytracing = true;
 	m_Settings.supportDescriptorIndexing = true;
-	m_Settings.resolutionX = 1920;
-	m_Settings.resolutionY = 1080;
+	m_Settings.resolutionX = 2560;
+	m_Settings.resolutionY = 1440;
 	m_Settings.supportDocking = false; // Don't try, won't work
 }
 
 void RTXApplication::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.scn");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "sponzas/dabrovic_sponza.scn");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
@@ -40,6 +42,7 @@ void RTXApplication::InitApp()
 	UpdateRTDescriptorSets();
 	CreateComputePipeline();
 
+	// TODO: Make this work
 	{
 		VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
 
@@ -62,7 +65,7 @@ void RTXApplication::InitApp()
 		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
 		pushConstant.vertical = 1;
 		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
-		
+
 		VulkanHelpers::EndSingleTimeCommandBuffer(commandBuffer);
 	}
 }
@@ -149,16 +152,53 @@ void RTXApplication::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 
 void RTXApplication::OnUIRender(float deltaTime)
 {
+	static bool showUI = true;
+	static bool keyDown = false;
+
+	if (Input::GetKey(KeyCode::F))
+	{
+		if (!keyDown)
+		{
+			keyDown = true;
+			showUI = !showUI;
+		}
+	}
+
+	else
+	{
+		keyDown = false;
+	}
+
+
+
+	CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Scene.camera.GetBuffer().Map());
+	LightingParams* lightingParams = reinterpret_cast<LightingParams*>(m_LightingBuffer.Map());
+	PostProcessParams* ppParams = reinterpret_cast<PostProcessParams*>(m_PostProcessBuffer.Map());
+
+	static bool tmpAcc = true;
+
+	if (!tmpAcc)
+	{
+		m_AccumulatedFrame = 0;
+	}
+
+	lightingParams->deltaTime = deltaTime;
+	lightingParams->frame++;
+	lightingParams->accumulationFrame = m_AccumulatedFrame++;
+
+	if (!showUI)
+	{
+		m_PostProcessBuffer.Unmap();
+		m_LightingBuffer.Unmap();
+		m_Scene.camera.GetBuffer().Unmap();
+
+		return;
+	}
+
 	{
 		ImGui::Begin("Settings");
 
 		ImGui::Text("%.1f FPS (%.3fms)", 1.0f / deltaTime, 1000.0f * deltaTime);
-
-		CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Scene.camera.GetBuffer().Map());
-		LightingParams* lightingParams = reinterpret_cast<LightingParams*>(m_LightingBuffer.Map());
-		PostProcessParams* ppParams = reinterpret_cast<PostProcessParams*>(m_PostProcessBuffer.Map());
-
-		static bool tmpAcc = true;
 
 		ImGui::Text("Camera");
 
@@ -209,15 +249,6 @@ void RTXApplication::OnUIRender(float deltaTime)
 		ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
 		ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
 		ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
-
-		if (!tmpAcc)
-		{
-			m_AccumulatedFrame = 0;
-		}
-
-		lightingParams->deltaTime = deltaTime;
-		lightingParams->frame++;
-		lightingParams->accumulationFrame = m_AccumulatedFrame++;
 
 		m_PostProcessBuffer.Unmap();
 		m_LightingBuffer.Unmap();
@@ -294,7 +325,7 @@ void RTXApplication::OnUpdate(size_t, float deltaTime)
 	const std::vector<RTMesh>& meshes = m_Scene.GetMeshes();
 	const uint32_t numInstances = m_Scene.GetMeshes().size();
 
-	VkAccelerationStructureInstanceKHR* instances = static_cast<VkAccelerationStructureInstanceKHR*>(m_Scene.GetInstancesBuffer().Map());
+	VkAccelerationStructureInstanceKHR* instances = reinterpret_cast<VkAccelerationStructureInstanceKHR*>(m_Scene.GetInstancesBuffer().Map());
 
 	for (int i = 0; i < numInstances; i++)
 	{
@@ -317,6 +348,13 @@ void RTXApplication::OnResize()
 	CreateResultImage();
 
 	UpdateRTDescriptorSets();
+
+	m_ComputePasses.clear();
+	m_ComputePasses.emplace_back()
+		.BindImage(m_ResultImage)
+		.BindImage(m_OffscreenImage)
+		.BindUniform(m_PostProcessBuffer)
+		.CreatePipeline("composite.spv");
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }

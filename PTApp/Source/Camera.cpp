@@ -1,3 +1,5 @@
+// https://github.com/TheCherno/RayTracing
+
 #include "Camera.h"
 
 #include "shared_with_shaders.h"
@@ -39,35 +41,35 @@ bool Camera::OnUpdate(float ts)
 
 	bool moved = false;
 
-	float speed = 5.0f * (Input::IsKeyDown(KeyCode::LeftShift) ? 2.0f : 1.0f);
+	float speed = 5.0f * (Input::GetKey(KeyCode::LeftShift) ? 2.0f : 1.0f);
 
 	// Movement
-	if (Input::IsKeyDown(KeyCode::W))
+	if (Input::GetKey(KeyCode::W))
 	{
 		position += direction * speed * ts;
 		moved = true;
 	}
-	else if (Input::IsKeyDown(KeyCode::S))
+	else if (Input::GetKey(KeyCode::S))
 	{
 		position -= direction * speed * ts;
 		moved = true;
 	}
-	if (Input::IsKeyDown(KeyCode::A))
+	if (Input::GetKey(KeyCode::A))
 	{
 		position -= rightDirection * speed * ts;
 		moved = true;
 	}
-	else if (Input::IsKeyDown(KeyCode::D))
+	else if (Input::GetKey(KeyCode::D))
 	{
 		position += rightDirection * speed * ts;
 		moved = true;
 	}
-	if (Input::IsKeyDown(KeyCode::Q))
+	if (Input::GetKey(KeyCode::Q))
 	{
 		position -= g_UpDirection * speed * ts;
 		moved = true;
 	}
-	else if (Input::IsKeyDown(KeyCode::E))
+	else if (Input::GetKey(KeyCode::E))
 	{
 		position += g_UpDirection * speed * ts;
 		moved = true;

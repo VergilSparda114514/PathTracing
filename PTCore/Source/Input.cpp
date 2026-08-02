@@ -1,10 +1,12 @@
+// https://github.com/StudioCherno/Walnut
+
 #include "Input.h"
 
 #include "Singleton.h"
 
 #include <GLFW/glfw3.h>
 
-bool Input::IsKeyDown(KeyCode keycode)
+bool Input::GetKey(KeyCode keycode)
 {
 	GLFWwindow* windowHandle = Singleton<GLFWwindow*>::Get();
 	int state = glfwGetKey(windowHandle, (int)keycode);

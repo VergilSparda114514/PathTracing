@@ -124,6 +124,8 @@ namespace VulkanHelpers
     class ComputePass
     {
     public:
+        ~ComputePass();
+
         ComputePass& BindImage(const Image& image);
         ComputePass& BindSampler(const Image& image);
         ComputePass& BindUniform(const Buffer& buffer);

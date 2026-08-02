@@ -395,7 +395,7 @@ namespace VulkanHelpers
 				const VkFormat fmt = textureHDR ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R8G8B8A8_SRGB;
 
 				error = Create(VK_IMAGE_TYPE_2D, fmt, imageExtent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				
+
 				if (VK_SUCCESS != error)
 				{
 					return false;
@@ -409,7 +409,7 @@ namespace VulkanHelpers
 
 				VkCommandBuffer commandBuffer;
 				error = vkAllocateCommandBuffers(__details::s_Device, &allocInfo, &commandBuffer);
-				
+
 				if (VK_SUCCESS != error)
 				{
 					return false;
@@ -420,7 +420,7 @@ namespace VulkanHelpers
 				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 				error = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-				
+
 				if (VK_SUCCESS != error)
 				{
 					vkFreeCommandBuffers(__details::s_Device, __details::s_CommandPool, 1, &commandBuffer);
@@ -602,6 +602,43 @@ namespace VulkanHelpers
 
 	// Compute pass
 
+	ComputePass::~ComputePass()
+	{
+		if (m_DescriptorSetLayout)
+		{
+			vkDestroyDescriptorSetLayout(__details::s_Device, m_DescriptorSetLayout, nullptr);
+			m_DescriptorSetLayout = VK_NULL_HANDLE;
+		}
+
+		if (m_DescriptorSet)
+		{
+			vkFreeDescriptorSets(__details::s_Device, m_DescriptorPool, 1, &m_DescriptorSet);
+			m_DescriptorSet = VK_NULL_HANDLE;
+		}
+
+		if (m_DescriptorPool)
+		{
+			vkDestroyDescriptorPool(__details::s_Device, m_DescriptorPool, nullptr);
+			m_DescriptorPool = VK_NULL_HANDLE;
+		}
+
+		m_ImageInfos.clear();
+		m_BufferInfos.clear();
+
+		m_DescriptorSetLayoutBindings.clear();
+		m_DescriptorWrites.clear();
+
+		if (m_PipelineLayout)
+		{
+			vkDestroyPipelineLayout(__details::s_Device, m_PipelineLayout, nullptr);
+		}
+
+		if (m_Pipeline)
+		{
+			vkDestroyPipeline(__details::s_Device, m_Pipeline, nullptr);
+		}
+	}
+
 	ComputePass& ComputePass::BindImage(const Image& image)
 	{
 		VkDescriptorSetLayoutBinding imageLayoutBinding = GetBinding();
@@ -609,7 +646,7 @@ namespace VulkanHelpers
 		imageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
 		m_DescriptorSetLayoutBindings.emplace_back(imageLayoutBinding);
-		
+
 		// Descriptor write
 
 		m_ImageInfos.emplace_back(image.GetSampler(), image.GetImageView(), VK_IMAGE_LAYOUT_GENERAL);
