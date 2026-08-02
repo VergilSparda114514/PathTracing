@@ -1,6 +1,7 @@
 # Path Tracing
 
 A simple path tracing project implemented in Vulkan \& C++
+![White Box](Screenshots/white_box.png)
 
 ## Requirements
 
@@ -22,6 +23,10 @@ A simple path tracing project implemented in Vulkan \& C++
 2. Run `compile_shaders.sh` and `compile_comp_shaders.sh` in the `PTApp/Resource` folder
 3. Run `Setup.sh` in the `scripts` folder
 4. Run `make` to build the project
+
+## Screenshots
+![Sponza 1](Screenshots/sponza1.png)
+![Sponza 2](Screenshots/sponza2.png)
 
 ### 3rd party libaries
 
