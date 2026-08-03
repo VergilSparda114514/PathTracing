@@ -10,6 +10,13 @@ A simple path tracing project implemented in Vulkan \& C++
 
 # Getting Started
 
+### Controls
+- Hold down right mouse button to unlock the camera
+- WASD to move the camera
+- QE to elevate the camera
+
+### [More Scenes](https://drive.google.com/drive/folders/1M_iqT96lMv0s2-hHGg3iR9SLaHJWcwY2?usp=drive_link)
+
 ## Windows
 
 1. Clone using `git clone --recursive https://github.com/VergilSparda114514/PathTracing.git`
@@ -36,7 +43,7 @@ A simple path tracing project implemented in Vulkan \& C++
 * [GLM](https://github.com/g-truc/glm)
 * [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
 
-### TODO (by priority)
+### TODO
 * [x] BSDF
 * [ ] FFT Bloom
 * [ ] Docking
