@@ -14,6 +14,7 @@ A simple path tracing project implemented in Vulkan \& C++
 - Hold down right mouse button to unlock the camera
 - WASD to move the camera
 - QE to elevate the camera
+- F to toggle UI
 
 ### [More Scenes](https://drive.google.com/drive/folders/1M_iqT96lMv0s2-hHGg3iR9SLaHJWcwY2?usp=drive_link)
 
