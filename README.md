@@ -47,7 +47,6 @@ A simple path tracing project implemented in Vulkan \& C++
 ### TODO
 * [x] BSDF
 * [ ] FFT Bloom
-* [ ] Docking
 * [ ] ReSTIR GRIS
 * [ ] NVIDIA DLSS
 * [ ] NVIDIA Ray Reconstruction
