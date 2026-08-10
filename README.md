@@ -2,6 +2,7 @@
 
 A simple path tracing project implemented in Vulkan \& C++
 ![White Box](Screenshots/white_box.png)
+Credits to [iOrange](https://iorange.github.io) for the tutorial
 
 ## Requirements
 
