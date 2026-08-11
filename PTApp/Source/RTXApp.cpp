@@ -94,9 +94,9 @@ void RTXApplication::FreeResources()
 		m_RTPipelineLayout = VK_NULL_HANDLE;
 	}
 
-	for (VkDescriptorSetLayout& dsl : m_RTDescriptorSetsLayouts)
+	for (VkDescriptorSetLayout& descriptorSetLayout : m_RTDescriptorSetsLayouts)
 	{
-		vkDestroyDescriptorSetLayout(m_Device, dsl, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device, descriptorSetLayout, nullptr);
 	}
 }
 

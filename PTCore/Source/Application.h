@@ -34,7 +34,6 @@ public:
 
     void    Run();
 protected:
-    void    LoadDynamicRenderingExtensionFunctions();
     bool    Initialize();
     void    Loop();
     void    Shutdown() const;

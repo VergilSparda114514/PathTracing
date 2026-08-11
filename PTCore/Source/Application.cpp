@@ -4,15 +4,15 @@
 static PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR = nullptr;
 static PFN_vkCmdEndRenderingKHR CmdEndRenderingKHR = nullptr;
 
+static void LoadDynamicRenderingPFNs(VkDevice device)
+{
+	CmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR");
+	CmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR");
+}
+
 Application::~Application()
 {
 	FreeVulkan();
-}
-
-void Application::LoadDynamicRenderingExtensionFunctions()
-{
-	CmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetDeviceProcAddr(m_Device, "vkCmdBeginRenderingKHR");
-	CmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetDeviceProcAddr(m_Device, "vkCmdEndRenderingKHR");
 }
 
 void Application::Run()
@@ -92,7 +92,7 @@ bool Application::Initialize()
 		return false;
 	}
 
-	LoadDynamicRenderingExtensionFunctions();
+	LoadDynamicRenderingPFNs(m_Device);
 
 	VulkanHelpers::Initialize(m_PhysicalDevice, m_Device, m_CommandPool, m_GraphicsQueue);
 
