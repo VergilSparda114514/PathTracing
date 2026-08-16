@@ -604,6 +604,11 @@ namespace VulkanHelpers
 
 	ComputePass::~ComputePass()
 	{
+		Reset();
+	}
+
+	void ComputePass::Reset()
+	{
 		if (m_DescriptorSetLayout)
 		{
 			vkDestroyDescriptorSetLayout(__details::s_Device, m_DescriptorSetLayout, nullptr);
@@ -812,6 +817,10 @@ namespace VulkanHelpers
 		error = vkCreatePipelineLayout(__details::s_Device, &createInfo, nullptr, &m_PipelineLayout);
 		CHECK_VK_ERROR(error, "vkCreatePipelineLayout");
 
+		// Create pipeline cache
+
+		m_PipelineCache.Create(path);
+
 		// Create pipeline
 
 		m_Shader.LoadFromFile(path);
@@ -821,7 +830,7 @@ namespace VulkanHelpers
 		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = m_Shader.GetShaderStage(VK_SHADER_STAGE_COMPUTE_BIT);
 
-		error = vkCreateComputePipelines(__details::s_Device, VK_NULL_HANDLE, 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
+		error = vkCreateComputePipelines(__details::s_Device, m_PipelineCache.Get(), 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
 	}
 
@@ -854,6 +863,58 @@ namespace VulkanHelpers
 		write.pTexelBufferView = nullptr;
 
 		return write;
+	}
+
+	// Pipeline Cache
+
+	PipelineCache::~PipelineCache()
+	{
+		if (m_PipelineCache)
+		{
+			size_t cacheSize = 0;
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, nullptr);
+
+			std::vector<uint8_t> cacheData(cacheSize);
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, cacheData.data());
+
+			std::ofstream out(m_FilePath, std::ios::binary);
+			out.write(reinterpret_cast<const char*>(cacheData.data()), cacheData.size());
+
+			vkDestroyPipelineCache(__details::s_Device, m_PipelineCache, nullptr);
+		}
+	}
+
+	void PipelineCache::Create(const std::filesystem::path& path)
+	{
+		m_FilePath = path;
+		m_FilePath.replace_extension("plc");
+
+		VkPipelineCacheCreateInfo cacheInfo{};
+		cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+
+		if (std::filesystem::exists(m_FilePath))
+		{
+			std::vector<uint8_t> initialData{};
+
+			std::ifstream in(m_FilePath, std::ios::binary | std::ios::ate);
+
+			const std::streamsize size = in.tellg();
+
+			if (size)
+			{
+				initialData.resize(size);
+
+				in.seekg(0);
+
+				in.read(reinterpret_cast<char*>(initialData.data()), size);
+			}
+
+			cacheInfo.pInitialData = initialData.data();
+			cacheInfo.initialDataSize = initialData.size();
+		}
+
+		VkResult error = vkCreatePipelineCache(__details::s_Device, &cacheInfo, nullptr, &m_PipelineCache);
+		CHECK_VK_ERROR(error, "vkCreatePipelineCache");
 	}
 
 	// Helper functions

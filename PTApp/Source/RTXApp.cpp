@@ -144,10 +144,7 @@ void RTXApplication::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 	uint32_t width = (m_Settings.resolutionX + 9) / 10;
 	uint32_t height = (m_Settings.resolutionY + 9) / 10;
 
-	for (const auto& pass : m_ComputePasses)
-	{
-		pass.Dispatch(commandBuffer, { width, height, 1u });
-	}
+	m_CompositePass.Dispatch(commandBuffer, { width, height, 1u });
 }
 
 void RTXApplication::OnUIRender(float deltaTime)
@@ -349,8 +346,9 @@ void RTXApplication::OnResize()
 
 	UpdateRTDescriptorSets();
 
-	m_ComputePasses.clear();
-	m_ComputePasses.emplace_back()
+	m_CompositePass.Reset();
+
+	m_CompositePass
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)
@@ -895,6 +893,8 @@ void RTXApplication::UpdateRTDescriptorSets()
 
 void RTXApplication::CreateRTPipelineAndSBT()
 {
+	// Pipeline layout
+
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(m_RTDescriptorSetsLayouts.size());
@@ -902,6 +902,8 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VkResult error = vkCreatePipelineLayout(m_Device, &pipelineLayoutCreateInfo, nullptr, &m_RTPipelineLayout);
 	CHECK_VK_ERROR(error, "vkCreatePipelineLayout");
+
+	// Shader binding table
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
@@ -914,6 +916,12 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	m_SBT.AddStageToHitGroup({ rayChitShader.GetShaderStage(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) }, 0);
 	m_SBT.AddStageToMissGroup(rayMissShader.GetShaderStage(VK_SHADER_STAGE_MISS_BIT_KHR), 0);
 
+	// Pipeline cache
+
+	m_RTPipelineCache.Create("rt_pipeline");
+
+	// RT pipeline & SBT
+
 	VkRayTracingPipelineCreateInfoKHR rayPipelineInfo{};
 	rayPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
 	rayPipelineInfo.stageCount = m_SBT.GetNumStages();
@@ -923,7 +931,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	rayPipelineInfo.maxPipelineRayRecursionDepth = 1;
 	rayPipelineInfo.layout = m_RTPipelineLayout;
 
-	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
+	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_RTPipelineCache.Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
 	CHECK_VK_ERROR(error, "vkCreateRayTracingPipelinesKHR");
 
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
@@ -943,7 +951,7 @@ void RTXApplication::CreateComputePipeline()
 
 	// m_FFTPass.CreatePipeline("fft.spv");
 
-	m_ComputePasses.emplace_back()
+	m_CompositePass
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)

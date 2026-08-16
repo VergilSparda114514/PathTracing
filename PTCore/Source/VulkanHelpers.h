@@ -8,7 +8,7 @@
 #include <cassert>
 
 #define CHECK_VK_ERROR(_error, _message) do {   \
-    if (VK_SUCCESS != error) {                  \
+    if (VK_SUCCESS != _error) {                 \
         assert(false && _message);              \
     }                                           \
 } while (false)
@@ -122,10 +122,29 @@ namespace VulkanHelpers
     };
 
 
+
+    class PipelineCache
+    {
+    public:
+        ~PipelineCache();
+
+        VkPipelineCache Get() const { return m_PipelineCache; }
+
+        void Create(const std::filesystem::path& path);
+    private:
+        VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
+
+        std::filesystem::path m_FilePath{};
+    };
+
+
+
     class ComputePass
     {
     public:
         ~ComputePass();
+
+        void Reset();
 
         ComputePass& BindImage(const Image& image);
         ComputePass& BindSampler(const Image& image);
@@ -155,6 +174,7 @@ namespace VulkanHelpers
 
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_Pipeline = VK_NULL_HANDLE;
+        PipelineCache m_PipelineCache{};
     };
 
     template <class PushConstant>
