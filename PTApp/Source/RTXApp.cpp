@@ -21,13 +21,13 @@ static uint32_t NextPowerOf2(uint32_t n)
 void RTXApplication::InitSettings()
 {
 	m_Settings.name = "Ray Tracing";
-	m_Settings.fullscreen = true;
+	m_Settings.fullscreen = false;
 	m_Settings.enableValidation = true;
 	m_Settings.enableVSync = false;
 	m_Settings.supportRaytracing = true;
 	m_Settings.supportDescriptorIndexing = true;
-	m_Settings.resolutionX = 2560;
-	m_Settings.resolutionY = 1440;
+	m_Settings.resolutionX = 1920;
+	m_Settings.resolutionY = 1080;
 	m_Settings.supportDocking = false; // Don't try, won't work
 }
 
