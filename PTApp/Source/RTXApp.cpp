@@ -352,7 +352,7 @@ void RTXApplication::OnResize()
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)
-		.CreatePipeline("composite.spv");
+		.CreatePipeline("composite.spv", m_PipelineCache);
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
@@ -918,7 +918,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	// Pipeline cache
 
-	m_RTPipelineCache.Create("rt_pipeline");
+	m_PipelineCache.Create("pipeline_cache.bin");
 
 	// RT pipeline & SBT
 
@@ -931,7 +931,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	rayPipelineInfo.maxPipelineRayRecursionDepth = 1;
 	rayPipelineInfo.layout = m_RTPipelineLayout;
 
-	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_RTPipelineCache.Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
+	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_PipelineCache.Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
 	CHECK_VK_ERROR(error, "vkCreateRayTracingPipelinesKHR");
 
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
@@ -942,12 +942,12 @@ void RTXApplication::CreateComputePipeline()
 	m_FFTPaddingPass
 		.BindSampler(m_KernelImage)
 		.BindImage(m_KernelPingImage)
-		.CreatePipeline("pad.spv");
+		.CreatePipeline("pad.spv", m_PipelineCache);
 
 	m_FFTKernelPass
 		.BindSampler(m_KernelPingImage)
 		.BindImage(m_KernelPongImage)
-		.CreatePipeline("fft_kernel.spv");
+		.CreatePipeline("fft_kernel.spv", m_PipelineCache);
 
 	// m_FFTPass.CreatePipeline("fft.spv");
 
@@ -955,5 +955,5 @@ void RTXApplication::CreateComputePipeline()
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)
-		.CreatePipeline("composite.spv");
+		.CreatePipeline("composite.spv", m_PipelineCache);
 }

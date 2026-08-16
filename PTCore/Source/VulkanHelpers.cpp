@@ -732,7 +732,7 @@ namespace VulkanHelpers
 		return *this;
 	}
 
-	void ComputePass::CreatePipeline(const std::filesystem::path& path)
+	void ComputePass::CreatePipeline(const std::filesystem::path& path, const PipelineCache& pipelineCache)
 	{
 		// Create descriptor set layout
 
@@ -817,10 +817,6 @@ namespace VulkanHelpers
 		error = vkCreatePipelineLayout(__details::s_Device, &createInfo, nullptr, &m_PipelineLayout);
 		CHECK_VK_ERROR(error, "vkCreatePipelineLayout");
 
-		// Create pipeline cache
-
-		m_PipelineCache.Create(path);
-
 		// Create pipeline
 
 		m_Shader.LoadFromFile(path);
@@ -830,7 +826,7 @@ namespace VulkanHelpers
 		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = m_Shader.GetShaderStage(VK_SHADER_STAGE_COMPUTE_BIT);
 
-		error = vkCreateComputePipelines(__details::s_Device, m_PipelineCache.Get(), 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
+		error = vkCreateComputePipelines(__details::s_Device, pipelineCache.Get(), 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
 	}
 
@@ -887,7 +883,6 @@ namespace VulkanHelpers
 	void PipelineCache::Create(const std::filesystem::path& path)
 	{
 		m_FilePath = path;
-		m_FilePath.replace_extension("plc");
 
 		VkPipelineCacheCreateInfo cacheInfo{};
 		cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;

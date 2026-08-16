@@ -151,7 +151,7 @@ namespace VulkanHelpers
         ComputePass& BindUniform(const Buffer& buffer);
         ComputePass& BindBuffer(const Buffer& buffer);
 
-        void CreatePipeline(const std::filesystem::path& path);
+        void CreatePipeline(const std::filesystem::path& path, const PipelineCache& pipelineCache);
 
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>
@@ -174,7 +174,6 @@ namespace VulkanHelpers
 
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_Pipeline = VK_NULL_HANDLE;
-        PipelineCache m_PipelineCache{};
     };
 
     template <class PushConstant>

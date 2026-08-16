@@ -31,7 +31,6 @@ private:
     std::array<VkDescriptorSetLayout, NUM_SETS>    m_RTDescriptorSetsLayouts{};
     VkPipelineLayout                m_RTPipelineLayout = VK_NULL_HANDLE;
     VkPipeline                      m_RTPipeline = VK_NULL_HANDLE;
-    VulkanHelpers::PipelineCache    m_RTPipelineCache{};
     VkDescriptorPool                m_RTDescriptorPool = VK_NULL_HANDLE;
     std::array<VkDescriptorSet, NUM_SETS>          m_RTDescriptorSets{};
 
@@ -40,6 +39,7 @@ private:
     VulkanHelpers::ComputePass      m_FFTKernelPass{};
     VulkanHelpers::ComputePass      m_FFTPass{};
     VulkanHelpers::ComputePass      m_CompositePass{};
+    VulkanHelpers::PipelineCache    m_PipelineCache{};
 
     ShaderBindingTable              m_SBT;
 
