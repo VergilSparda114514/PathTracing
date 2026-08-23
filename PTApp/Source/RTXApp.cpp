@@ -34,40 +34,13 @@ void RTXApplication::InitSettings()
 void RTXApplication::InitApp()
 {
 	VKKHR::LoadPFNs(m_Device);
-	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "sponzas/dabrovic_sponza.scn");
+	m_Scene.Init(m_Device, m_CommandPool, m_GraphicsQueue, "boxes/white_box.scn");
 	CreateBuffers();
 	CreateResultImage();
 	CreateRTDescriptorSetsLayouts();
 	CreateRTPipelineAndSBT();
 	UpdateRTDescriptorSets();
 	CreateComputePipeline();
-
-	// TODO: Make this work
-	{
-		VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
-
-		VkExtent3D extent = m_KernelImage.GetExtent();
-
-		uint32_t fftWidth = NextPowerOf2(extent.width);
-		uint32_t fftHeight = NextPowerOf2(extent.height);
-
-		uint32_t padWidth = (fftWidth + 31) / 32;
-		uint32_t padHeight = (fftHeight + 31) / 32;
-
-		m_FFTPaddingPass.Dispatch(commandBuffer, { padWidth, padHeight, 1u });
-
-		struct
-		{
-			int vertical = 0;
-			int inverse = 0;
-		} pushConstant;
-
-		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
-		pushConstant.vertical = 1;
-		m_FFTKernelPass.Dispatch(commandBuffer, { fftWidth, fftHeight, 1u }, &pushConstant);
-
-		VulkanHelpers::EndSingleTimeCommandBuffer(commandBuffer);
-	}
 }
 
 void RTXApplication::FreeResources()
@@ -939,18 +912,6 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 void RTXApplication::CreateComputePipeline()
 {
-	m_FFTPaddingPass
-		.BindSampler(m_KernelImage)
-		.BindImage(m_KernelPingImage)
-		.CreatePipeline("pad.spv", m_PipelineCache);
-
-	m_FFTKernelPass
-		.BindSampler(m_KernelPingImage)
-		.BindImage(m_KernelPongImage)
-		.CreatePipeline("fft_kernel.spv", m_PipelineCache);
-
-	// m_FFTPass.CreatePipeline("fft.spv");
-
 	m_CompositePass
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)

@@ -22,7 +22,7 @@
 static const std::filesystem::path s_ScenesFolder = "Resource/Scenes/";
 static const std::filesystem::path s_EnvsFolder = "Resource/Environments/";
 static const std::filesystem::path s_TexFolder = "Resource/Textures/";
-static const std::filesystem::path s_DefaultTex = "Resource/Textures/default.jpg";
+static const std::filesystem::path s_DefaultTex = "Resource/default_tex.jpg";
 
 
 

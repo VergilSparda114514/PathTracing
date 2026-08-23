@@ -30,6 +30,7 @@ project "PTCore"
        "yaml-cpp",
 
        "%{Library.Vulkan}",
+       "%{Library.ShaderC}",
    }
 
    targetdir ("../../bin/" .. outputdir .. "/%{prj.name}")
