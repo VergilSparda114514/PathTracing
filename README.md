@@ -51,4 +51,6 @@ Credits to [iOrange](https://iorange.github.io) for the tutorial
 * [ ] ReSTIR GRIS
 * [ ] NVIDIA DLSS
 * [ ] NVIDIA Ray Reconstruction
+* [ ] AMD FSR
+* [ ] AMD Ray Regeneration
 
