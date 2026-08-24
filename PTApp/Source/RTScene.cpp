@@ -8,10 +8,10 @@
 #include <execution>
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#ifndef _DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
+#ifndef WL_DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
 #define TINYOBJLOADER_USE_MULTITHREADING
 #define TINYOBJLOADER_USE_SIMD
-#endif
+#endif // WL_DEBUG
 #include <tiny_obj_loader.h>
 
 #define YAML_CPP_STATIC_DEFINE

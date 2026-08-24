@@ -584,11 +584,9 @@ namespace VulkanHelpers
 
 	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind)
 	{
-#ifdef WL_DEBUG
-		throw std::runtime_error("ShaderC not available in Debug");
+		std::vector<uint32_t> data{};
 
-		return {};
-#else
+#ifndef WL_DEBUG
 		// Compile
 
 		shaderc::Compiler compiler{};
@@ -609,7 +607,8 @@ namespace VulkanHelpers
 			throw std::runtime_error(fileName.string() + '\n' + result.GetErrorMessage());
 		}
 
-		std::vector<uint32_t> data(result.cbegin(), result.cend());
+		data.assign(result.cbegin(), result.cend());
+#endif // WL_DEBUG
 
 		// Shader module
 
@@ -624,35 +623,6 @@ namespace VulkanHelpers
 		CHECK_VK_ERROR(error, "vkCreateShaderModule");
 
 		return data;
-#endif // WL_DEBUG
-	}
-
-	bool Shader::LoadFromFile(const std::filesystem::path& fileName)
-	{
-		bool result = false;
-
-		std::ifstream file("Resource/Shaders/" / fileName, std::ios::ate | std::ios::binary);
-		if (file)
-		{
-			const size_t fileSize = static_cast<size_t>(file.tellg());
-			std::vector<char> buffer(fileSize);
-
-			file.seekg(0);
-			file.read(buffer.data(), fileSize);
-			file.close();
-
-			VkShaderModuleCreateInfo shaderModuleCreateInfo{};
-			shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			shaderModuleCreateInfo.pNext = nullptr;
-			shaderModuleCreateInfo.codeSize = buffer.size();
-			shaderModuleCreateInfo.pCode = reinterpret_cast<uint32_t*>(buffer.data());
-			shaderModuleCreateInfo.flags = 0;
-
-			const VkResult error = vkCreateShaderModule(__details::s_Device, &shaderModuleCreateInfo, nullptr, &m_Module);
-			result = (VK_SUCCESS == error);
-		}
-
-		return result;
 	}
 
 	void Shader::Destroy()

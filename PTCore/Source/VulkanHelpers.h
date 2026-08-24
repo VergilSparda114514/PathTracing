@@ -132,7 +132,6 @@ namespace VulkanHelpers
         ~Shader();
 
         std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind);
-        bool    LoadFromFile(const std::filesystem::path& fileName);
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage(VkShaderStageFlagBits stage);
