@@ -15,7 +15,7 @@
 
 #include <backends/imgui_impl_vulkan.h>
 
-static const std::filesystem::path s_ShadersFolder = "Resource/Shaders/";
+static const std::filesystem::path s_ShadersFolder = "Source/Shaders/";
 
 namespace VulkanHelpers
 {
@@ -542,6 +542,39 @@ namespace VulkanHelpers
 		m_DescriptorSet = ImGui_ImplVulkan_AddTexture(m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
+	// Shader Includer
+
+	shaderc_include_result* ShaderIncluder::GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth)
+	{
+		std::filesystem::path requestedPath = type == shaderc_include_type_relative ? s_ShadersFolder / requested_source : requested_source;
+		requestedPath = std::filesystem::weakly_canonical(requestedPath);
+
+		std::ifstream file(requestedPath, std::ios::binary);
+		std::string content(std::istreambuf_iterator<char>(file), {});
+		file.close();
+
+		IncludeData* data = new IncludeData{};
+		data->name = requestedPath.string();
+		data->content = std::move(content);
+
+		shaderc_include_result* result = new shaderc_include_result{};
+		result->user_data = data;
+		result->source_name = data->name.c_str();
+		result->source_name_length = data->name.length();
+		result->content = data->content.c_str();
+		result->content_length = data->content.length();
+
+		return result;
+	}
+
+	void ShaderIncluder::ReleaseInclude(shaderc_include_result* data)
+	{
+		IncludeData* user_data = reinterpret_cast<IncludeData*>(data->user_data);
+
+		delete user_data;
+		delete data;
+	}
+
 	// Shader
 
 	Shader::~Shader()
@@ -549,11 +582,56 @@ namespace VulkanHelpers
 		Destroy();
 	}
 
+	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind)
+	{
+#ifdef WL_DEBUG
+		throw std::runtime_error("ShaderC not available in Debug");
+
+		return {};
+#else
+		// Compile
+
+		shaderc::Compiler compiler{};
+		shaderc::CompileOptions options{};
+
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_4);
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
+		options.SetIncluder(std::make_unique<ShaderIncluder>());
+
+		std::ifstream file(s_ShadersFolder / fileName);
+		std::string src(std::istreambuf_iterator<char>(file), {});
+		file.close();
+
+		shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(src, kind, fileName.string().c_str(), options);
+
+		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			throw std::runtime_error(fileName.string() + '\n' + result.GetErrorMessage());
+		}
+
+		std::vector<uint32_t> data(result.cbegin(), result.cend());
+
+		// Shader module
+
+		VkShaderModuleCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.pCode = data.data();
+		createInfo.codeSize = data.size() * sizeof(uint32_t);
+		createInfo.flags = 0;
+
+		VkResult error = vkCreateShaderModule(__details::s_Device, &createInfo, nullptr, &m_Module);
+		CHECK_VK_ERROR(error, "vkCreateShaderModule");
+
+		return data;
+#endif // WL_DEBUG
+	}
+
 	bool Shader::LoadFromFile(const std::filesystem::path& fileName)
 	{
 		bool result = false;
 
-		std::ifstream file(s_ShadersFolder / fileName, std::ios::ate | std::ios::binary);
+		std::ifstream file("Resource/Shaders/" / fileName, std::ios::ate | std::ios::binary);
 		if (file)
 		{
 			const size_t fileSize = static_cast<size_t>(file.tellg());
@@ -563,7 +641,7 @@ namespace VulkanHelpers
 			file.read(buffer.data(), fileSize);
 			file.close();
 
-			VkShaderModuleCreateInfo shaderModuleCreateInfo;
+			VkShaderModuleCreateInfo shaderModuleCreateInfo{};
 			shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 			shaderModuleCreateInfo.pNext = nullptr;
 			shaderModuleCreateInfo.codeSize = buffer.size();
@@ -819,7 +897,7 @@ namespace VulkanHelpers
 
 		// Create pipeline
 
-		m_Shader.LoadFromFile(path);
+		m_Shader.Compile(path, shaderc_glsl_compute_shader);
 
 		VkComputePipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;

@@ -7,27 +7,27 @@ project "Path Tracing"
 
    files
    {
-       "Source/**.h",
-       "Source/**.cpp",
+      "Source/**.h",
+      "Source/**.cpp",
    }
 
    includedirs
    {
-       "../vendor/GLFW/include",
-       "../vendor/stb_image",
-       "../vendor/tiny_obj_loader",
-       "../vendor/imgui",
-       "../vendor/yaml-cpp/include",
-       
-       "../PTCore/Source",
-       
-       "%{IncludeDir.VulkanSDK}",
-       "%{IncludeDir.glm}",
+      "../vendor/GLFW/include",
+      "../vendor/stb_image",
+      "../vendor/tiny_obj_loader",
+      "../vendor/imgui",
+      "../vendor/yaml-cpp/include",
+      
+      "../PTCore/Source",
+      
+      "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.glm}",
    }
 
    links
    {
-       "PTCore",
+      "PTCore",
    }
    
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")

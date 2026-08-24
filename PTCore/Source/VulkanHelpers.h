@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <shaderc/shaderc.hpp>
 
 #include <glm/glm.hpp>
 
@@ -63,6 +64,7 @@ namespace VulkanHelpers
     };
 
 
+
     class Image
     {
     public:
@@ -107,11 +109,29 @@ namespace VulkanHelpers
     };
 
 
+
+    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
+    {
+    public:
+        shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override;
+
+        void ReleaseInclude(shaderc_include_result* data) override;
+    private:
+        struct IncludeData
+        {
+            std::string name;
+            std::string content;
+        };
+    };
+
+
+
     class Shader
     {
     public:
         ~Shader();
 
+        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind);
         bool    LoadFromFile(const std::filesystem::path& fileName);
         void    Destroy();
 

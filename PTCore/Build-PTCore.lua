@@ -7,34 +7,34 @@ project "PTCore"
 
    files
    {
-       "Source/**.h",
-       "Source/**.cpp",
+      "Source/**.h",
+      "Source/**.cpp",
    }
 
    includedirs
    {
-       "Source",
-       
-       "../vendor/GLFW/include",
-       "../vendor/stb_image",
-       "../vendor/imgui",
-       
-       "%{IncludeDir.VulkanSDK}",
-       "%{IncludeDir.glm}",
+      "Source",
+      
+      "../vendor/GLFW/include",
+      "../vendor/stb_image",
+      "../vendor/imgui",
+      
+      "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.glm}",
    }
 
    links
    {
-       "GLFW",
-       "ImGui",
-       "yaml-cpp",
+      "GLFW",
+      "ImGui",
+      "yaml-cpp",
 
-       "%{Library.Vulkan}",
-       "%{Library.ShaderC}",
+      "%{Library.Vulkan}",
+      "%{Library.ShaderC}",
    }
 
-   targetdir ("../../bin/" .. outputdir .. "/%{prj.name}")
-   objdir ("../../bin-int/" .. outputdir .. "/%{prj.name}")
+   targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
+   objdir ("../bin-int/" .. outputdir .. "/%{prj.name}")
 
    filter "system:windows"
       systemversion "latest"

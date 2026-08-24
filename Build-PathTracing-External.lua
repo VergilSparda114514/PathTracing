@@ -9,7 +9,7 @@ LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
 
 Library = {}
 Library["Vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
-Library["ShaderC"] = "%{LibraryDir.VulkanSDK}/shaderc.lib"
+Library["ShaderC"] = "%{LibraryDir.VulkanSDK}/shaderc_combined.lib"
 
 group "Dependencies"
    include "vendor/GLFW"
