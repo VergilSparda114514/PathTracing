@@ -880,14 +880,14 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
-	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, {});
-	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, {});
-	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader, {});
+	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, {}, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, {}, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader, {}, VK_SHADER_STAGE_MISS_BIT_KHR);
 	m_SBT.Initialize(1, 1, m_RTProperties.shaderGroupHandleSize, m_RTProperties.shaderGroupBaseAlignment);
 
-	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage(VK_SHADER_STAGE_RAYGEN_BIT_KHR));
-	m_SBT.AddStageToHitGroup({ rayChitShader.GetShaderStage(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) }, 0);
-	m_SBT.AddStageToMissGroup(rayMissShader.GetShaderStage(VK_SHADER_STAGE_MISS_BIT_KHR), 0);
+	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage());
+	m_SBT.AddStageToHitGroup({ rayChitShader.GetShaderStage() }, 0);
+	m_SBT.AddStageToMissGroup(rayMissShader.GetShaderStage(), 0);
 
 	// Pipeline cache
 

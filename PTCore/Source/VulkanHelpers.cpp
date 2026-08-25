@@ -582,7 +582,8 @@ namespace VulkanHelpers
 		Destroy();
 	}
 
-	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, const std::vector<std::pair<std::string, std::string>>& definitions)
+	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind,
+		const std::vector<std::pair<std::string, std::string>>& definitions, VkShaderStageFlagBits stage, const VkSpecializationInfo* specializationConstants)
 	{
 		std::vector<uint32_t> data{};
 
@@ -627,6 +628,16 @@ namespace VulkanHelpers
 		VkResult error = vkCreateShaderModule(__details::s_Device, &createInfo, nullptr, &m_Module);
 		CHECK_VK_ERROR(error, "vkCreateShaderModule");
 
+		// Shader stage
+
+		m_Stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		m_Stage.pNext = nullptr;
+		m_Stage.flags = 0;
+		m_Stage.stage = stage;
+		m_Stage.module = m_Module;
+		m_Stage.pName = "main";
+		m_Stage.pSpecializationInfo = specializationConstants;
+
 		return data;
 	}
 
@@ -637,20 +648,6 @@ namespace VulkanHelpers
 			vkDestroyShaderModule(__details::s_Device, m_Module, nullptr);
 			m_Module = VK_NULL_HANDLE;
 		}
-	}
-
-	VkPipelineShaderStageCreateInfo Shader::GetShaderStage(VkShaderStageFlagBits stage)
-	{
-		VkPipelineShaderStageCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
-		createInfo.stage = stage;
-		createInfo.module = m_Module;
-		createInfo.pName = "main";
-		createInfo.pSpecializationInfo = nullptr;
-
-		return createInfo;
 	}
 
 	// Compute pass
@@ -785,7 +782,8 @@ namespace VulkanHelpers
 		return *this;
 	}
 
-	void ComputePass::CreatePipeline(const std::filesystem::path& path, const std::vector<std::string>& definitions, const PipelineCache& pipelineCache)
+	void ComputePass::CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions,
+		const PipelineCache& pipelineCache)
 	{
 		// Create descriptor set layout
 
@@ -872,12 +870,12 @@ namespace VulkanHelpers
 
 		// Create pipeline
 
-		m_Shader.Compile(path, shaderc_glsl_compute_shader, definitions);
+		m_Shader.Compile(path, shaderc_glsl_compute_shader, definitions, VK_SHADER_STAGE_COMPUTE_BIT);
 
 		VkComputePipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 		pipelineInfo.layout = m_PipelineLayout;
-		pipelineInfo.stage = m_Shader.GetShaderStage(VK_SHADER_STAGE_COMPUTE_BIT);
+		pipelineInfo.stage = m_Shader.GetShaderStage();
 
 		error = vkCreateComputePipelines(__details::s_Device, pipelineCache.Get(), 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");

@@ -46,7 +46,7 @@ using vec2 = glm::vec2;
 using ivec3 = glm::ivec3;
 using vec3 = glm::vec3;
 using vec4 = glm::vec4;
-using mat4 = glm::mat4; 
+using mat4 = glm::mat4;
 using uvec4 = glm::uvec4;
 using ivec2 = glm::ivec2;
 using uint = unsigned int;
@@ -67,47 +67,47 @@ using uvec2 = glm::uvec2;
 #ifndef __cplusplus
 
 #ifndef DISABLE_LOGGING
-	#define LOG_CLICKED0(str) \
+#define LOG_CLICKED0(str) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			debugPrintfEXT(str); \
 	}
 
-	#define LOG_CLICKED(str, args) \
+#define LOG_CLICKED(str, args) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			debugPrintfEXT(str, args); \
 		}
 
-	#define LOG_CLICKED2(str, args1, args2) \
+#define LOG_CLICKED2(str, args1, args2) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			debugPrintfEXT(str, args1, args2); \
 		}
 
-	#define LOG_CLICKED3(str, args1, args2, args3) \
+#define LOG_CLICKED3(str, args1, args2, args3) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			debugPrintfEXT(str, args1, args2, args3); \
 		}
 
-	#define LOG_CLICKED4(str, args1, args2, args3, args4) \
+#define LOG_CLICKED4(str, args1, args2, args3, args4) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			debugPrintfEXT(str, args1, args2, args3, args4); \
 		}
 
-	#define LOG_VAL(str, args, coord) \
+#define LOG_VAL(str, args, coord) \
 		if(ivec2(gl_LaunchIDEXT.xy) == coord) { \
 			debugPrintfEXT(str, args); \
 		}
 
-	#define LOG(str, coord) \
+#define LOG(str, coord) \
 		if(ivec2(gl_LaunchIDEXT.xy) == coord) { \
 			debugPrintfEXT(str); \
 		}
 
-	#define LOG0(str) debugPrintfEXT(str);
-	#define LOG1(str, val) debugPrintfEXT(str, val);
-	#define LOG2(str, val, val2) debugPrintfEXT(str, val, val2);
-	#define LOG3(str, val, val2, val3) debugPrintfEXT(str, val, val2, val3);
+#define LOG0(str) debugPrintfEXT(str);
+#define LOG1(str, val) debugPrintfEXT(str, val);
+#define LOG2(str, val, val2) debugPrintfEXT(str, val, val2);
+#define LOG3(str, val, val2, val3) debugPrintfEXT(str, val, val2, val3);
 
-	#define ASSERT_CLICKED_STR(cond, expected, str, val) \
+#define ASSERT_CLICKED_STR(cond, expected, str, val) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			if(cond != expected)  {\
 				debugPrintfEXT("Assertion failed: "); \
@@ -115,46 +115,46 @@ using uvec2 = glm::uvec2;
 			} \
 		}
 
-	#define ASSERT_CLICKED(cond, expected) \
+#define ASSERT_CLICKED(cond, expected) \
 		if(ubo.debug_click == 1 && ivec2(gl_LaunchIDEXT.xy) == ubo.clicked_pos) { \
 			if(cond != expected)  {\
 				debugPrintfEXT("Assertion failed!\n"); \
 			} \
 		}
 
-	
 
-	#define ASSERT(cond) \
+
+#define ASSERT(cond) \
 		if(!(cond))  { \
 			debugPrintfEXT("Assertion failed (L%d) on pixel %v2i\n", __LINE__, ivec2(gl_LaunchIDEXT.xy)); \
 		}
 
-	#define ASSERT0(cond, str) \
+#define ASSERT0(cond, str) \
 		if(!(cond))  { \
 			debugPrintfEXT(str); \
 		}
 
-	#define ASSERT1(cond, str, val1) \
+#define ASSERT1(cond, str, val1) \
 		if(!(cond))  { \
 			debugPrintfEXT(str, val1); \
 		}
 #else
-	#define LOG_CLICKED0(str)
-	#define LOG_CLICKED(str, args)
-	#define LOG_CLICKED2(str, args1, args2)
-	#define LOG_CLICKED3(str, args1, args2, args3)
-	#define LOG_CLICKED4(str, args1, args2, args3, args4)
-	#define LOG_VAL(str, args, coord)
-	#define LOG(str, coord)
-	#define LOG0(str)
-	#define LOG1(str, val)
-	#define LOG2(str, val, val2)
-	#define LOG3(str, val, val2, val3) 
-	#define ASSERT_CLICKED_STR(cond, expected, str, val)
-	#define ASSERT_CLICKED(cond, expected)
-	#define ASSERT(cond)
-	#define ASSERT0(cond, str)
-	#define ASSERT1(cond, str, val1)
+#define LOG_CLICKED0(str)
+#define LOG_CLICKED(str, args)
+#define LOG_CLICKED2(str, args1, args2)
+#define LOG_CLICKED3(str, args1, args2, args3)
+#define LOG_CLICKED4(str, args1, args2, args3, args4)
+#define LOG_VAL(str, args, coord)
+#define LOG(str, coord)
+#define LOG0(str)
+#define LOG1(str, val)
+#define LOG2(str, val, val2)
+#define LOG3(str, val, val2, val3) 
+#define ASSERT_CLICKED_STR(cond, expected, str, val)
+#define ASSERT_CLICKED(cond, expected)
+#define ASSERT(cond)
+#define ASSERT0(cond, str)
+#define ASSERT1(cond, str, val1)
 #endif // DISABLE_ASSERTS 		
 
 #endif
@@ -219,7 +219,7 @@ struct Material {
 	uint bsdf_props;
 	vec3 k;
 	int texture_id;
-	
+
 	float roughness;
 	float diffuse_trans;
 	float spec_trans;
@@ -236,7 +236,7 @@ struct Material {
 };
 
 // Scene buffer addresses
- struct ALIGN16 SceneDesc {
+struct ALIGN16 SceneDesc {
 	uint64_t compact_vertices_addr;
 	uint64_t index_addr;
 	uint64_t material_addr;
