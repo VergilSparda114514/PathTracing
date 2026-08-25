@@ -35,9 +35,6 @@ private:
     std::array<VkDescriptorSet, NUM_SETS>          m_RTDescriptorSets{};
 
     // Compute pipeline
-    VulkanHelpers::ComputePass      m_FFTPaddingPass{};
-    VulkanHelpers::ComputePass      m_FFTKernelPass{};
-    VulkanHelpers::ComputePass      m_FFTPass{};
     VulkanHelpers::ComputePass      m_CompositePass{};
     VulkanHelpers::PipelineCache    m_PipelineCache{};
 

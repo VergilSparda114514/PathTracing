@@ -582,7 +582,7 @@ namespace VulkanHelpers
 		Destroy();
 	}
 
-	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind)
+	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, const std::vector<std::pair<std::string, std::string>>& definitions)
 	{
 		std::vector<uint32_t> data{};
 
@@ -595,6 +595,11 @@ namespace VulkanHelpers
 		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_4);
 		options.SetOptimizationLevel(shaderc_optimization_level_performance);
 		options.SetIncluder(std::make_unique<ShaderIncluder>());
+
+		for (const auto& [name, value] : definitions)
+		{
+			options.AddMacroDefinition(name, value);
+		}
 
 		std::ifstream file(s_ShadersFolder / fileName);
 		std::string src(std::istreambuf_iterator<char>(file), {});
@@ -780,7 +785,7 @@ namespace VulkanHelpers
 		return *this;
 	}
 
-	void ComputePass::CreatePipeline(const std::filesystem::path& path, const PipelineCache& pipelineCache)
+	void ComputePass::CreatePipeline(const std::filesystem::path& path, const std::vector<std::string>& definitions, const PipelineCache& pipelineCache)
 	{
 		// Create descriptor set layout
 
@@ -867,7 +872,7 @@ namespace VulkanHelpers
 
 		// Create pipeline
 
-		m_Shader.Compile(path, shaderc_glsl_compute_shader);
+		m_Shader.Compile(path, shaderc_glsl_compute_shader, definitions);
 
 		VkComputePipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;

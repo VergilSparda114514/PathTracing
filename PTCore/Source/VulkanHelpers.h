@@ -131,7 +131,7 @@ namespace VulkanHelpers
     public:
         ~Shader();
 
-        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind);
+        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, const std::vector<std::pair<std::string, std::string>>& definitions);
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage(VkShaderStageFlagBits stage);
@@ -170,7 +170,7 @@ namespace VulkanHelpers
         ComputePass& BindUniform(const Buffer& buffer);
         ComputePass& BindBuffer(const Buffer& buffer);
 
-        void CreatePipeline(const std::filesystem::path& path, const PipelineCache& pipelineCache);
+        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::string>& definitions, const PipelineCache& pipelineCache);
 
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>

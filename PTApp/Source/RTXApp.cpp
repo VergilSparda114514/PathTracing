@@ -325,7 +325,7 @@ void RTXApplication::OnResize()
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)
-		.CreatePipeline("composite.comp", m_PipelineCache);
+		.CreatePipeline("composite.comp", {}, m_PipelineCache);
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
@@ -880,9 +880,9 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
-	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader);
-	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader);
-	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader);
+	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, {});
+	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, {});
+	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader, {});
 	m_SBT.Initialize(1, 1, m_RTProperties.shaderGroupHandleSize, m_RTProperties.shaderGroupBaseAlignment);
 
 	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage(VK_SHADER_STAGE_RAYGEN_BIT_KHR));
@@ -916,5 +916,5 @@ void RTXApplication::CreateComputePipeline()
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
 		.BindUniform(m_PostProcessBuffer)
-		.CreatePipeline("composite.comp", m_PipelineCache);
+		.CreatePipeline("composite.comp", {}, m_PipelineCache);
 }
