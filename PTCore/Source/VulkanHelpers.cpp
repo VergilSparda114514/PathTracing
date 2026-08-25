@@ -582,8 +582,8 @@ namespace VulkanHelpers
 		Destroy();
 	}
 
-	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind,
-		const std::vector<std::pair<std::string, std::string>>& definitions, VkShaderStageFlagBits stage, const VkSpecializationInfo* specializationConstants)
+	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
+		const std::vector<std::pair<std::string, std::string>>& definitions, const VkSpecializationInfo* specializationConstants)
 	{
 		std::vector<uint32_t> data{};
 
@@ -870,7 +870,7 @@ namespace VulkanHelpers
 
 		// Create pipeline
 
-		m_Shader.Compile(path, shaderc_glsl_compute_shader, definitions, VK_SHADER_STAGE_COMPUTE_BIT);
+		m_Shader.Compile(path, shaderc_glsl_compute_shader, VK_SHADER_STAGE_COMPUTE_BIT, definitions);
 
 		VkComputePipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;

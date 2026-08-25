@@ -880,9 +880,9 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
 
-	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, {}, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
-	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, {}, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
-	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader, {}, VK_SHADER_STAGE_MISS_BIT_KHR);
+	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, VK_SHADER_STAGE_RAYGEN_BIT_KHR, {});
+	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, {});
+	rayMissShader.Compile("ray_miss.glsl", shaderc_glsl_miss_shader, VK_SHADER_STAGE_MISS_BIT_KHR, {});
 	m_SBT.Initialize(1, 1, m_RTProperties.shaderGroupHandleSize, m_RTProperties.shaderGroupBaseAlignment);
 
 	m_SBT.SetRaygenStage(rayGenShader.GetShaderStage());

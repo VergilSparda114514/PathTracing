@@ -131,8 +131,8 @@ namespace VulkanHelpers
     public:
         ~Shader();
 
-        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind,
-            const std::vector<std::pair<std::string, std::string>>& definitions, VkShaderStageFlagBits stage, const VkSpecializationInfo* specializationConstants = nullptr);
+        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
+            const std::vector<std::pair<std::string, std::string>>& definitions, const VkSpecializationInfo* specializationConstants = nullptr);
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage() const { return m_Stage; };
