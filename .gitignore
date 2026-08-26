@@ -6,6 +6,7 @@ PTApp/Resource/Scenes
 PTApp/Resource/Textures
 
 # Files
+Makefile
 *.ini
 *.bin
 *.spv
