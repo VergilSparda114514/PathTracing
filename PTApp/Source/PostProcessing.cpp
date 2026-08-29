@@ -8,6 +8,12 @@ PostProcessor::~PostProcessor()
 void PostProcessor::CreateImage(VkExtent3D extent)
 {
 	m_Image.CreateRGBA32(extent);
+
+	for (const auto& effect : m_Effects)
+	{
+		effect->Reset();
+		effect->CreateBindings(m_Image);
+	}
 }
 
 void PostProcessor::DestroyImage()
@@ -51,4 +57,9 @@ void PostProcessor::OnUIRender() const
 	{
 		effect->OnUIRender();
 	}
+}
+
+void PostProcessingEffect::Reset()
+{
+	m_ComputePass.Reset();
 }

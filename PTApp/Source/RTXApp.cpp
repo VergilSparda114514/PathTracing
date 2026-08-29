@@ -296,7 +296,7 @@ void RTXApplication::OnResize()
 	m_AccumulatedFrame = 0;
 
 	m_ResultImage.Destroy();
-	// m_PostProcessor.DestroyImage();
+	m_PostProcessor.DestroyImage();
 	CreateResultImage();
 
 	UpdateRTDescriptorSets();
