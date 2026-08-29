@@ -29,17 +29,20 @@ void ColorAdjustment::OnUIRender()
 {
 	ColorAdjustmentParams* ppParams = reinterpret_cast<ColorAdjustmentParams*>(m_Params.Map());
 
-	const char* items[] =
+	if (ImGui::CollapsingHeader("Colour Adjustment"))
 	{
-		"None",
-		"Neutral",
-		"ACES"
-	};
+		const char* items[] =
+		{
+			"None",
+			"Neutral",
+			"ACES"
+		};
 
-	ImGui::Combo("Tone Mapping", &ppParams->toneMappingMode, items, IM_ARRAYSIZE(items));
-	ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
-	ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
-	ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
+		ImGui::Combo("Tone Mapping", &ppParams->toneMappingMode, items, IM_ARRAYSIZE(items));
+		ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
+		ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
+		ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
+	}
 
 	m_Params.Unmap();
 }

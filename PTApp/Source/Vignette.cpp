@@ -27,11 +27,12 @@ void Vignette::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size)
 
 void Vignette::OnUIRender()
 {
-	ImGui::Text("Vignette");
-
 	VignetteParams* params = reinterpret_cast<VignetteParams*>(m_Params.Map());
 
-	ImGui::DragFloat("Intensity", &params->intensity, 0.1f, 0.0f, std::numeric_limits<float>::max());
+	if (ImGui::CollapsingHeader("Vignette"))
+	{
+		ImGui::DragFloat("Intensity", &params->intensity, 0.1f, 0.0f, std::numeric_limits<float>::max());
+	}
 
 	m_Params.Unmap();
 }

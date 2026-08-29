@@ -43,7 +43,7 @@ void RTXApplication::InitApp()
 	CreateRTDescriptorSetsLayouts();
 	CreateRTPipelineAndSBT();
 	UpdateRTDescriptorSets();
-	CreateComputePipeline();
+	CreateCompositePass();
 
 	m_PostProcessor.PushEffect<ColorAdjustment>();
 	m_PostProcessor.PushEffect<Vignette>();
@@ -176,45 +176,37 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		ImGui::Text("%.1f FPS (%.3fms)", 1.0f / deltaTime, 1000.0f * deltaTime);
 
-		ImGui::Text("Camera");
-
-		ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
-		ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
-
-		if (ImGui::Button("Save"))
+		if (ImGui::CollapsingHeader("Scene"))
 		{
-			m_Scene.Save();
+			ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
+			ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
+
+			if (ImGui::Button("Save"))
+			{
+				m_Scene.Save();
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Ray"))
+		{
+			ImGui::SliderInt("Rays per Pixel", &lightingParams->numSamples, 1, 3);
+			ImGui::SliderInt("Max Bounces", &lightingParams->maxRecursion, 1, 7);
+			ImGui::Checkbox("Temporal Accumulation", &tmpAcc);
+		}
+
+		if (ImGui::CollapsingHeader("Depth of Field"))
+		{
+			ImGui::Checkbox("Enable DOF", &cameraParams->enableDOF);
+			ImGui::Checkbox("Auto Focus", &cameraParams->autoFocus);
+			ImGui::SliderFloat("Aperature Size", &cameraParams->apertureSize, 0.0f, 1.0f);
+			ImGui::SliderFloat("Focus Speed", &cameraParams->focusSpeed, 0.0f, 10.0f);
 		}
 
 		ImGui::Spacing();
-		ImGui::Separator();
+		ImGui::SeparatorText("Post Processing");
 		ImGui::Spacing();
-
-		ImGui::Text("Ray");
-
-		ImGui::SliderInt("Rays per Pixel", &lightingParams->numSamples, 1, 3);
-		ImGui::SliderInt("Max Bounces", &lightingParams->maxRecursion, 1, 7);
-		ImGui::Checkbox("Temporal Accumulation", &tmpAcc);
-
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Spacing();
-		ImGui::Text("Depth of Field");
-
-		ImGui::Checkbox("Enable DOF", &cameraParams->enableDOF);
-		ImGui::Checkbox("Auto Focus", &cameraParams->autoFocus);
-		ImGui::SliderFloat("Aperature Size", &cameraParams->apertureSize, 0.0f, 1.0f);
-		ImGui::SliderFloat("Focus Speed", &cameraParams->focusSpeed, 0.0f, 10.0f);
-
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Spacing();
-
-		ImGui::BeginChild("Post Processing");
 
 		m_PostProcessor.OnUIRender();
-
-		ImGui::EndChild();
 
 		m_LightingBuffer.Unmap();
 		m_Scene.camera.GetBuffer().Unmap();
@@ -229,15 +221,12 @@ void RTXApplication::OnUIRender(float deltaTime)
 		{
 			ImGui::PushID(&mesh.name);
 
-			ImGui::Text(std::format("{}", mesh.name).c_str());
-
-			ImGui::DragFloat3("Position", glm::value_ptr(mesh.position), 0.01f);
-			ImGui::DragFloat3("Rotation", glm::value_ptr(mesh.rotation), 0.1f);
-			ImGui::DragFloat3("Scale", glm::value_ptr(mesh.scale), 0.01f);
-
-			ImGui::Spacing();
-			ImGui::Separator();
-			ImGui::Spacing();
+			if (ImGui::CollapsingHeader(std::format("{}", mesh.name).c_str()))
+			{
+				ImGui::DragFloat3("Position", glm::value_ptr(mesh.position), 0.01f);
+				ImGui::DragFloat3("Rotation", glm::value_ptr(mesh.rotation), 0.1f);
+				ImGui::DragFloat3("Scale", glm::value_ptr(mesh.scale), 0.01f);
+			}
 
 			ImGui::PopID();
 		}
@@ -257,24 +246,21 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 			ImGui::PushID(&material);
 
-			ImGui::Text(std::format("{}", m_Scene.GetMaterials()[i].name).c_str());
-
-			ImGui::SliderFloat("Rougness", &material.roughness, 0.0f, 1.0f);
-			ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f);
-			ImGui::SliderFloat("Smoothness", &material.smoothness, 0.0f, 1.0f);
-			ImGui::SliderFloat("Transmittance", &material.transmittance, 0.0f, 1.0f);
-			ImGui::SliderFloat("IOR", &material.ior, 0.0f, 2.0f);
-			ImGui::DragFloat("Absorption Strength", &material.absorptionStrength, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat("Bump Strength", &material.bumpStrength);
-			ImGui::ColorEdit3("Base Reflectance", glm::value_ptr(material.baseReflectance));
-			ImGui::ColorEdit3("Diffuse Color", glm::value_ptr(material.diffuseColor));
-			ImGui::ColorEdit3("Specular Color", glm::value_ptr(material.specularColor));
-			ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.transmissionColor));
-			ImGui::ColorEdit3("Emission", glm::value_ptr(material.emission), ImGuiColorEditFlags_::ImGuiColorEditFlags_HDR);
-
-			ImGui::Spacing();
-			ImGui::Separator();
-			ImGui::Spacing();
+			if (ImGui::CollapsingHeader(std::format("{}", m_Scene.GetMaterials()[i].name).c_str()))
+			{
+				ImGui::SliderFloat("Rougness", &material.roughness, 0.0f, 1.0f);
+				ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f);
+				ImGui::SliderFloat("Smoothness", &material.smoothness, 0.0f, 1.0f);
+				ImGui::SliderFloat("Transmittance", &material.transmittance, 0.0f, 1.0f);
+				ImGui::SliderFloat("IOR", &material.ior, 0.0f, 2.0f);
+				ImGui::DragFloat("Absorption Strength", &material.absorptionStrength, 0.01f, 0.0f, std::numeric_limits<float>::max());
+				ImGui::DragFloat("Bump Strength", &material.bumpStrength);
+				ImGui::ColorEdit3("Base Reflectance", glm::value_ptr(material.baseReflectance));
+				ImGui::ColorEdit3("Diffuse Color", glm::value_ptr(material.diffuseColor));
+				ImGui::ColorEdit3("Specular Color", glm::value_ptr(material.specularColor));
+				ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.transmissionColor));
+				ImGui::ColorEdit3("Emission", glm::value_ptr(material.emission), ImGuiColorEditFlags_::ImGuiColorEditFlags_HDR);
+			}
 
 			ImGui::PopID();
 		}
@@ -310,16 +296,13 @@ void RTXApplication::OnResize()
 	m_AccumulatedFrame = 0;
 
 	m_ResultImage.Destroy();
+	// m_PostProcessor.DestroyImage();
 	CreateResultImage();
 
 	UpdateRTDescriptorSets();
 
 	m_CompositePass.Reset();
-
-	m_CompositePass
-		.BindImage(m_ResultImage)
-		.BindImage(m_OffscreenImage)
-		.CreatePipeline("composite.comp", {}, m_PipelineCache);
+	CreateCompositePass();
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
 }
@@ -898,7 +881,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
 }
 
-void RTXApplication::CreateComputePipeline()
+void RTXApplication::CreateCompositePass()
 {
 	m_CompositePass
 		.BindImage(m_PostProcessor.GetImage())

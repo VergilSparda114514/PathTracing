@@ -115,7 +115,7 @@ struct ColorAdjustmentParams
 
 struct VignetteParams
 {
-	float intensity cpp_default(0.25f);
+	float intensity cpp_default(1.0f);
 };
 
 #endif

@@ -24,7 +24,10 @@ public:
 	using storage_t = std::vector<std::unique_ptr<PostProcessingEffect>>;
 	using effect_t = typename storage_t::value_type;
 public:
+	~PostProcessor();
+
 	void CreateImage(VkExtent3D extent);
+	void DestroyImage();
 	void CopyImage(VkCommandBuffer commandBuffer, const VulkanHelpers::Image& image);
 	const VulkanHelpers::Image& GetImage() const { return m_Image; }
 

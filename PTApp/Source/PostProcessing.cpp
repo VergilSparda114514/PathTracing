@@ -1,8 +1,18 @@
 #include "PostProcessing.h"
 
+PostProcessor::~PostProcessor()
+{
+	DestroyImage();
+}
+
 void PostProcessor::CreateImage(VkExtent3D extent)
 {
 	m_Image.CreateRGBA32(extent);
+}
+
+void PostProcessor::DestroyImage()
+{
+	m_Image.Destroy();
 }
 
 void PostProcessor::CopyImage(VkCommandBuffer commandBuffer, const VulkanHelpers::Image& image)

@@ -26,7 +26,7 @@ private:
 	void CreateRTDescriptorSetsLayouts();
 	void UpdateRTDescriptorSets();
 	void CreateRTPipelineAndSBT();
-	void CreateComputePipeline();
+	void CreateCompositePass();
 private:
 	// RT Pipeline
 	std::array<VkDescriptorSetLayout, NUM_SETS>    m_RTDescriptorSetsLayouts{};
