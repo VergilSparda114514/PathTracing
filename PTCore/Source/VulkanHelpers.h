@@ -83,15 +83,13 @@ namespace VulkanHelpers
         bool        Load(const std::filesystem::path& fileName);
         VkResult    CreateImageView(VkImageViewType viewType, VkFormat format, VkImageSubresourceRange subresourceRange);
         VkResult    CreateSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode);
-        void        CreateDescriptorSet();
 
         // getters
         VkFormat    GetFormat() const { return m_Format; }
         VkImage     GetImage() const { return m_Image; }
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
-        VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
-		VkExtent3D GetExtent() const { return { m_Width, m_Height, 1u }; }
+		VkExtent3D GetExtent() const { return m_Extent; }
     private:
         // For Vulkan
 
@@ -100,12 +98,7 @@ namespace VulkanHelpers
         VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
         VkImageView     m_ImageView = VK_NULL_HANDLE;
         VkSampler       m_Sampler = VK_NULL_HANDLE;
-
-        // For Dear ImGui
-
-        uint32_t m_Width = 0;
-        uint32_t m_Height = 0;
-        VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+        VkExtent3D      m_Extent{ 0, 0, 0 };
     };
 
 
@@ -171,7 +164,8 @@ namespace VulkanHelpers
         ComputePass& BindUniform(const Buffer& buffer);
         ComputePass& BindBuffer(const Buffer& buffer);
 
-        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions, const PipelineCache& pipelineCache);
+        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions,
+            std::optional<std::reference_wrapper<PipelineCache>> pipelineCache);
 
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>

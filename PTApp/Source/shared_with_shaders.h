@@ -103,19 +103,19 @@ struct CameraParams
 	cpp_alignas(16) vec3 camNearFarFov;
 };
 
-struct PostProcessParams
+// Post processing
+
+struct ColorAdjustmentParams
 {
-	// Bloom
-
-	float bloomThreshold cpp_default(0.8f);
-	float bloomStrength cpp_default(1.0f);
-	int kernelSize cpp_default(5);
-
-	// Adjustments
 	int toneMappingMode cpp_default(2);
 	float exposure cpp_default(0.5f);
 	float contrast cpp_default(1.05f);
 	float saturation cpp_default(1.5f);
+};
+
+struct VignetteParams
+{
+	float intensity cpp_default(0.25f);
 };
 
 #endif

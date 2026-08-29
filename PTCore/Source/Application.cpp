@@ -796,6 +796,7 @@ void Application::FillCommandBuffers()
 		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 		copyRegion.dstOffset = { 0, 0, 0 };
 		copyRegion.extent = { m_Settings.resolutionX, m_Settings.resolutionY, 1 };
+
 		vkCmdCopyImage(commandBuffer,
 			m_OffscreenImage.GetImage(),
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

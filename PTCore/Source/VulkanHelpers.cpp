@@ -13,8 +13,6 @@
 
 #include <stb_image.h>
 
-#include <backends/imgui_impl_vulkan.h>
-
 static const std::filesystem::path s_ShadersFolder = "Source/Shaders/";
 
 namespace VulkanHelpers
@@ -305,6 +303,8 @@ namespace VulkanHelpers
 
 	VkResult Image::CreateRGBA32(VkExtent3D extent)
 	{
+		m_Extent = extent;
+
 		Create(VK_IMAGE_TYPE_2D,
 			VK_FORMAT_R32G32B32A32_SFLOAT,
 			extent,
@@ -344,12 +344,6 @@ namespace VulkanHelpers
 			vkDestroyImage(__details::s_Device, m_Image, nullptr);
 			m_Image = VK_NULL_HANDLE;
 		}
-
-		if (m_DescriptorSet)
-		{
-			vkFreeDescriptorSets(__details::s_Device, VK_NULL_HANDLE, 1, &m_DescriptorSet);
-			m_DescriptorSet = VK_NULL_HANDLE;
-		}
 	}
 
 	bool Image::Load(const std::filesystem::path& fileName)
@@ -373,8 +367,7 @@ namespace VulkanHelpers
 
 		if (imageData)
 		{
-			m_Width = width;
-			m_Height = height;
+			m_Extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u};
 
 			const int bpp = textureHDR ? sizeof(float[4]) : sizeof(uint8_t[4]);
 			VkDeviceSize imageSize = static_cast<VkDeviceSize>(width * height * bpp);
@@ -535,11 +528,6 @@ namespace VulkanHelpers
 		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
 		return vkCreateSampler(__details::s_Device, &samplerCreateInfo, nullptr, &m_Sampler);
-	}
-
-	void Image::CreateDescriptorSet()
-	{
-		m_DescriptorSet = ImGui_ImplVulkan_AddTexture(m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
 	// Shader Includer
@@ -783,7 +771,7 @@ namespace VulkanHelpers
 	}
 
 	void ComputePass::CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions,
-		const PipelineCache& pipelineCache)
+		std::optional<std::reference_wrapper<PipelineCache>> pipelineCache)
 	{
 		// Create descriptor set layout
 
@@ -877,7 +865,9 @@ namespace VulkanHelpers
 		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = m_Shader.GetShaderStage();
 
-		error = vkCreateComputePipelines(__details::s_Device, pipelineCache.Get(), 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
+		VkPipelineCache cache = pipelineCache ? (*pipelineCache).get().Get() : VK_NULL_HANDLE;
+
+		error = vkCreateComputePipelines(__details::s_Device, cache, 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
 	}
 

@@ -3,6 +3,9 @@
 #include "shared_with_shaders.h"
 #include "VKKHR.h"
 
+#include "ColorAdjustment.h"
+#include "Vignette.h"
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Input.h>
@@ -41,6 +44,9 @@ void RTXApplication::InitApp()
 	CreateRTPipelineAndSBT();
 	UpdateRTDescriptorSets();
 	CreateComputePipeline();
+
+	m_PostProcessor.PushEffect<ColorAdjustment>();
+	m_PostProcessor.PushEffect<Vignette>();
 }
 
 void RTXApplication::FreeResources()
@@ -117,6 +123,8 @@ void RTXApplication::FillCommandBuffer(VkCommandBuffer commandBuffer, size_t)
 	uint32_t width = (m_Settings.resolutionX + 9) / 10;
 	uint32_t height = (m_Settings.resolutionY + 9) / 10;
 
+	m_PostProcessor.CopyImage(commandBuffer, m_ResultImage);
+	m_PostProcessor.Dispatch(commandBuffer, { width, height, 1u });
 	m_CompositePass.Dispatch(commandBuffer, { width, height, 1u });
 }
 
@@ -143,7 +151,6 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 	CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Scene.camera.GetBuffer().Map());
 	LightingParams* lightingParams = reinterpret_cast<LightingParams*>(m_LightingBuffer.Map());
-	PostProcessParams* ppParams = reinterpret_cast<PostProcessParams*>(m_PostProcessBuffer.Map());
 
 	static bool tmpAcc = true;
 
@@ -158,7 +165,6 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 	if (!showUI)
 	{
-		m_PostProcessBuffer.Unmap();
 		m_LightingBuffer.Unmap();
 		m_Scene.camera.GetBuffer().Unmap();
 
@@ -204,23 +210,12 @@ void RTXApplication::OnUIRender(float deltaTime)
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		ImGui::Text("Post Processing");
+		ImGui::BeginChild("Post Processing");
 
-		const char* items[] =
-		{
-			"None",
-			"Neutral",
-			"ACES"
-		};
+		m_PostProcessor.OnUIRender();
 
-		ImGui::DragFloat("Bloom Threshold", &ppParams->bloomThreshold, 0.1f, 0.0f, 0.0f, "%.1f");
-		ImGui::DragFloat("Bloom Strength", &ppParams->bloomStrength, 0.1f, 0.0f, 0.0f, "%.1f");
-		ImGui::Combo("Tone Mapping", &ppParams->toneMappingMode, items, IM_ARRAYSIZE(items));
-		ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
-		ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
-		ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
+		ImGui::EndChild();
 
-		m_PostProcessBuffer.Unmap();
 		m_LightingBuffer.Unmap();
 		m_Scene.camera.GetBuffer().Unmap();
 
@@ -324,7 +319,6 @@ void RTXApplication::OnResize()
 	m_CompositePass
 		.BindImage(m_ResultImage)
 		.BindImage(m_OffscreenImage)
-		.BindUniform(m_PostProcessBuffer)
 		.CreatePipeline("composite.comp", {}, m_PipelineCache);
 
 	m_Scene.camera.OnResize(m_Settings.supportDocking ? m_ViewportWidth : m_Settings.resolutionX, m_Settings.supportDocking ? m_ViewportHeight : m_Settings.resolutionY);
@@ -334,19 +328,10 @@ void RTXApplication::CreateBuffers()
 {
 	m_Scene.camera.CreateBuffer();
 
-	{
-		VkResult error = m_LightingBuffer.Create(sizeof(LightingParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		CHECK_VK_ERROR(error, "mLightingBuffer.Create");
+	VkResult error = m_LightingBuffer.Create(sizeof(LightingParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	CHECK_VK_ERROR(error, "m_LightingBuffer.Create");
 
-		m_LightingBuffer.UploadData(new LightingParams(), sizeof(LightingParams));
-	}
-
-	{
-		VkResult error = m_PostProcessBuffer.Create(sizeof(PostProcessParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		CHECK_VK_ERROR(error, "mPostProcessBuffer.Create");
-
-		m_PostProcessBuffer.UploadData(new PostProcessParams(), sizeof(PostProcessParams));
-	}
+	m_LightingBuffer.UploadData(new LightingParams(), sizeof(LightingParams));
 }
 
 void RTXApplication::CreateResultImage()
@@ -354,7 +339,9 @@ void RTXApplication::CreateResultImage()
 	VkExtent3D extent = { m_Settings.resolutionX, m_Settings.resolutionY, 1 };
 
 	m_ResultImage.CreateRGBA32(extent);
+	m_PostProcessor.CreateImage(extent);
 
+	/*
 	extent.width = NextPowerOf2(extent.width);
 	extent.height = NextPowerOf2(extent.height);
 
@@ -376,6 +363,7 @@ void RTXApplication::CreateResultImage()
 		m_KernelPingImage.CreateRGBA32(m_KernelImage.GetExtent());
 		m_KernelPongImage.CreateRGBA32(m_KernelImage.GetExtent());
 	}
+	*/
 
 	uint32_t size = m_Settings.resolutionX * m_Settings.resolutionY;
 
@@ -913,8 +901,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 void RTXApplication::CreateComputePipeline()
 {
 	m_CompositePass
-		.BindImage(m_ResultImage)
+		.BindImage(m_PostProcessor.GetImage())
 		.BindImage(m_OffscreenImage)
-		.BindUniform(m_PostProcessBuffer)
 		.CreatePipeline("composite.comp", {}, m_PipelineCache);
 }

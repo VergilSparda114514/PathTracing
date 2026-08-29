@@ -1,0 +1,63 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
+
+#include "../shared_with_shaders.h"
+
+layout(set = 0, binding = 0, rgba32f) uniform image2D ResultImage;
+
+layout(set = 0, binding = 1, std140) uniform Data {
+	ColorAdjustmentParams params;
+};
+
+layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+
+vec3 Contrast(vec3 color, float contrast)
+{
+	const float pivot = 0.18f;
+	return (color - pivot) * contrast + pivot;
+}
+
+vec3 Saturate(vec3 color, float saturation)
+{
+	float grey = dot(color, vec3(0.2126, 0.7152, 0.0722));
+	return mix(vec3(grey), color, saturation);
+}
+
+vec3 Neutral(vec3 color)
+{
+	return color / (color + 1.0f);
+}
+
+vec3 ACES(vec3 color)
+{
+	const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+}
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	vec3 color = imageLoad(ResultImage, coord).rgb;
+
+	color *= params.exposure;
+	switch (params.toneMappingMode)
+	{
+		case 1:
+			color = Neutral(color);
+			break;
+		case 2:
+			color = ACES(color);
+			break;
+		default:
+			break;
+	}
+	color = Contrast(color, params.contrast);
+	color = Saturate(color, params.saturation);
+
+	imageStore(ResultImage, coord, vec4(color, 1.0f));
+}
