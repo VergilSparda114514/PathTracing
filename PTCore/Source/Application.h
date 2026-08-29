@@ -64,7 +64,7 @@ protected:
     virtual void OnUpdate(size_t imageIndex, float dt) {}
     virtual void OnResize() {}
 public:
-    bool mFramebufferResized = false;
+    bool m_FramebufferResized = false;
 protected:
     AppSettings             m_Settings{};
     GLFWwindow*             m_Window = nullptr;

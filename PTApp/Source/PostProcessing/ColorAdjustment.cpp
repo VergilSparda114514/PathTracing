@@ -6,6 +6,8 @@
 
 ColorAdjustment::ColorAdjustment()
 {
+	name = "Colour Adjustment";
+
 	VkResult error = m_Params.Create(sizeof(ColorAdjustmentParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	CHECK_VK_ERROR(error, "ColorAdjustment::m_Params.Create");
 
@@ -20,11 +22,11 @@ void ColorAdjustment::Create(const VulkanHelpers::Image& image, std::shared_ptr<
 		.CreatePipeline("color_adjustment.comp", {}, cache);
 }
 
-void ColorAdjustment::OnUIRender()
+void ColorAdjustment::OnUIRender(bool open)
 {
 	ColorAdjustmentParams* ppParams = reinterpret_cast<ColorAdjustmentParams*>(m_Params.Map());
 
-	if (ImGui::TreeNode("Colour Adjustment"))
+	if (open)
 	{
 		const char* items[] =
 		{
@@ -37,8 +39,6 @@ void ColorAdjustment::OnUIRender()
 		ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
 		ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
 		ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
-
-		ImGui::TreePop();
 	}
 
 	m_Params.Unmap();

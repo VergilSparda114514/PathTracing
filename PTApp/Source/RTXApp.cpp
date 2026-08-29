@@ -5,6 +5,7 @@
 
 #include "PostProcessing/ColorAdjustment.h"
 #include "PostProcessing/Vignette.h"
+#include "PostProcessing/Dithering.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -206,7 +207,36 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		if (ImGui::CollapsingHeader("Post Processing"))
 		{
-			m_PostProcessor.OnUIRender();
+			if (m_PostProcessor.OnUIRender())
+			{
+				m_FramebufferResized = true;
+			}
+
+			if (ImGui::BeginMenu("+"))
+			{
+				if (ImGui::MenuItem("Colour Adjustment"))
+				{
+					m_PostProcessor.PushEffect<ColorAdjustment>();
+
+					m_FramebufferResized = true;
+				}
+
+				if (ImGui::MenuItem("Vignette"))
+				{
+					m_PostProcessor.PushEffect<Vignette>();
+
+					m_FramebufferResized = true;
+				}
+
+				if (ImGui::MenuItem("Dithering"))
+				{
+					m_PostProcessor.PushEffect<Dithering>();
+
+					m_FramebufferResized = true;
+				}
+
+				ImGui::EndMenu();
+			}
 		}
 
 		m_LightingBuffer.Unmap();

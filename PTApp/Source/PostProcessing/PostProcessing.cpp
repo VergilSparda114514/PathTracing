@@ -51,12 +51,35 @@ void PostProcessor::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size) con
 	}
 }
 
-void PostProcessor::OnUIRender() const
+bool PostProcessor::OnUIRender()
 {
-	for (const auto& effect : m_Effects)
+	auto to_remove = m_Effects.end();
+
+	for (auto it = m_Effects.begin(); it != m_Effects.end(); it++)
 	{
-		effect->OnUIRender();
+		bool open = ImGui::TreeNode((*it)->name.c_str());
+
+		(*it)->OnUIRender(open);
+
+		if (open)
+		{
+			if (ImGui::Button("Remove"))
+			{
+				to_remove = it;
+			}
+
+			ImGui::TreePop();
+		}
 	}
+
+	if (to_remove != m_Effects.end())
+	{
+		m_Effects.erase(to_remove);
+
+		return true;
+	}
+
+	return false;
 }
 
 void PostProcessor::SetPipelineCache(std::shared_ptr<VulkanHelpers::PipelineCache> cache)

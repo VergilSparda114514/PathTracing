@@ -6,7 +6,7 @@ void Bloom::Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelp
 		.BindImage(image);
 }
 
-void Bloom::OnUIRender()
+void Bloom::OnUIRender(bool open)
 {
 
 }

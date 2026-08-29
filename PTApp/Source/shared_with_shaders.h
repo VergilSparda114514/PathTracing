@@ -127,4 +127,9 @@ struct ChromaticAberrationParams
 	vec2 blueOffset cpp_default(vec2(-0.001f));
 };
 
+struct DitheringParams
+{
+	int bands cpp_default(8);
+};
+
 #endif

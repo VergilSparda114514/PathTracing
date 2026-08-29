@@ -65,7 +65,7 @@ bool Application::Initialize()
 	glfwSetWindowSizeCallback(window, [](GLFWwindow* wnd, int width, int height)
 		{
 			Application* app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(wnd));
-			app->mFramebufferResized = true;
+			app->m_FramebufferResized = true;
 		});
 
 	m_Window = window;
@@ -863,9 +863,9 @@ void Application::RecreateSwapchain()
 //
 void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 {
-	if (mFramebufferResized)
+	if (m_FramebufferResized)
 	{
-		mFramebufferResized = false;
+		m_FramebufferResized = false;
 		RecreateSwapchain();
 		return;
 	}

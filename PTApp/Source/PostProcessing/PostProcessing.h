@@ -2,6 +2,8 @@
 
 #include <VulkanHelpers.h>
 
+#include <imgui.h>
+
 #include <vector>
 #include <memory>
 
@@ -14,7 +16,9 @@ public:
 
 	virtual void Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache) = 0;
 	virtual void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size);
-	virtual void OnUIRender() {};
+	virtual void OnUIRender(bool open) {};
+public:
+	std::string name{};
 protected:
 	VulkanHelpers::ComputePass m_ComputePass{};
 };
@@ -31,9 +35,10 @@ public:
 	void DestroyImage();
 	void CopyImage(VkCommandBuffer commandBuffer, const VulkanHelpers::Image& image);
 	const VulkanHelpers::Image& GetImage() const { return m_Image; }
+	constexpr bool empty() const { return m_Effects.empty(); }
 
 	void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size) const;
-	void OnUIRender() const;
+	bool OnUIRender();
 
 	void SetPipelineCache(std::shared_ptr<VulkanHelpers::PipelineCache> cache);
 

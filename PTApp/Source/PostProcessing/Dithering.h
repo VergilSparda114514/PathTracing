@@ -2,10 +2,10 @@
 
 #include "PostProcessing.h"
 
-class ColorAdjustment : public PostProcessingEffect
+class Dithering : public PostProcessingEffect
 {
 public:
-	ColorAdjustment();
+	Dithering();
 
 	virtual void Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache) override;
 	virtual void OnUIRender(bool open) override;

@@ -24,7 +24,7 @@ public:
 	constexpr float GetFarPlane() const { return m_FarClip; }
 	constexpr float GetFovY() const { return m_VerticalFOV; }
 
-	constexpr float GetRotationSpeed() const { return 0.3; }
+	constexpr float GetRotationSpeed() const { return 0.3f; }
 public:
 	glm::vec3 position{ 0.0f };
 	glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
