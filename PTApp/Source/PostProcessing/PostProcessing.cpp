@@ -12,7 +12,7 @@ void PostProcessor::CreateImage(VkExtent3D extent)
 	for (const auto& effect : m_Effects)
 	{
 		effect->Reset();
-		effect->CreateBindings(m_Image);
+		effect->Create(m_Image, m_PipelineCache);
 	}
 }
 
@@ -57,6 +57,11 @@ void PostProcessor::OnUIRender() const
 	{
 		effect->OnUIRender();
 	}
+}
+
+void PostProcessor::SetPipelineCache(std::shared_ptr<VulkanHelpers::PipelineCache> cache)
+{
+	m_PipelineCache = cache;
 }
 
 void PostProcessingEffect::Reset()

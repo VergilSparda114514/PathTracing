@@ -45,6 +45,8 @@ void RTXApplication::InitApp()
 	UpdateRTDescriptorSets();
 	CreateCompositePass();
 
+	m_PostProcessor.SetPipelineCache(m_PipelineCache);
+
 	m_PostProcessor.PushEffect<ColorAdjustment>();
 	m_PostProcessor.PushEffect<Vignette>();
 }
@@ -202,11 +204,10 @@ void RTXApplication::OnUIRender(float deltaTime)
 			ImGui::SliderFloat("Focus Speed", &cameraParams->focusSpeed, 0.0f, 10.0f);
 		}
 
-		ImGui::Spacing();
-		ImGui::SeparatorText("Post Processing");
-		ImGui::Spacing();
-
-		m_PostProcessor.OnUIRender();
+		if (ImGui::CollapsingHeader("Post Processing"))
+		{
+			m_PostProcessor.OnUIRender();
+		}
 
 		m_LightingBuffer.Unmap();
 		m_Scene.camera.GetBuffer().Unmap();
@@ -862,7 +863,8 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	// Pipeline cache
 
-	m_PipelineCache.Create("pipeline_cache.bin");
+	m_PipelineCache = std::make_shared<VulkanHelpers::PipelineCache>();
+	m_PipelineCache->Create("pipeline_cache.bin");
 
 	// RT pipeline & SBT
 
@@ -875,7 +877,7 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	rayPipelineInfo.maxPipelineRayRecursionDepth = 1;
 	rayPipelineInfo.layout = m_RTPipelineLayout;
 
-	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_PipelineCache.Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
+	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_PipelineCache->Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
 	CHECK_VK_ERROR(error, "vkCreateRayTracingPipelinesKHR");
 
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);

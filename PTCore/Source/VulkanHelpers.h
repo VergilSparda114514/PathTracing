@@ -125,7 +125,7 @@ namespace VulkanHelpers
         ~Shader();
 
         std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
-            const std::vector<std::pair<std::string, std::string>>& definitions, const VkSpecializationInfo* specializationConstants = nullptr);
+            const std::vector<std::pair<std::string, std::string>>& definitions = {}, const VkSpecializationInfo* specializationConstants = nullptr);
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage() const { return m_Stage; };
@@ -143,7 +143,7 @@ namespace VulkanHelpers
 
         VkPipelineCache Get() const { return m_PipelineCache; }
 
-        void Create(const std::filesystem::path& path);
+        void Create(const std::filesystem::path& fileName);
     private:
         VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
@@ -164,8 +164,8 @@ namespace VulkanHelpers
         ComputePass& BindUniform(const Buffer& buffer);
         ComputePass& BindBuffer(const Buffer& buffer);
 
-        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions,
-            std::optional<std::reference_wrapper<PipelineCache>> pipelineCache);
+        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions = {},
+            std::shared_ptr<PipelineCache> pipelineCache = nullptr);
 
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>

@@ -1,9 +1,10 @@
 #include "RTXApp.h"
 
+#include <Singleton.h>
+
 int main()
 {
-	RTXApplication application;
-	application.Run();
+	Singleton<RTXApplication>::Get().Run();
 }
 
 #ifdef _WIN64

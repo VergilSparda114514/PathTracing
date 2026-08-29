@@ -771,7 +771,7 @@ namespace VulkanHelpers
 	}
 
 	void ComputePass::CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions,
-		std::optional<std::reference_wrapper<PipelineCache>> pipelineCache)
+		std::shared_ptr<PipelineCache> pipelineCache)
 	{
 		// Create descriptor set layout
 
@@ -865,7 +865,7 @@ namespace VulkanHelpers
 		pipelineInfo.layout = m_PipelineLayout;
 		pipelineInfo.stage = m_Shader.GetShaderStage();
 
-		VkPipelineCache cache = pipelineCache ? (*pipelineCache).get().Get() : VK_NULL_HANDLE;
+		VkPipelineCache cache = pipelineCache ? pipelineCache->Get() : VK_NULL_HANDLE;
 
 		error = vkCreateComputePipelines(__details::s_Device, cache, 1, &pipelineInfo, VK_NULL_HANDLE, &m_Pipeline);
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
@@ -921,9 +921,9 @@ namespace VulkanHelpers
 		}
 	}
 
-	void PipelineCache::Create(const std::filesystem::path& path)
+	void PipelineCache::Create(const std::filesystem::path& fileName)
 	{
-		m_FilePath = path;
+		m_FilePath = "Resource" / fileName;
 
 		VkPipelineCacheCreateInfo cacheInfo{};
 		cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;

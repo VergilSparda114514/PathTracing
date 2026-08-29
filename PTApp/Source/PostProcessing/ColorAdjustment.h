@@ -7,7 +7,7 @@ class ColorAdjustment : public PostProcessingEffect
 public:
 	ColorAdjustment();
 
-	virtual void CreateBindings(const VulkanHelpers::Image& image) override;
+	virtual void Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache) override;
 	virtual void OnUIRender() override;
 private:
 	VulkanHelpers::Buffer m_Params{};

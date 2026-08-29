@@ -12,21 +12,23 @@ Vignette::Vignette()
 	m_Params.UploadData(new VignetteParams(), sizeof(VignetteParams));
 }
 
-void Vignette::CreateBindings(const VulkanHelpers::Image& image)
+void Vignette::Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache)
 {
 	m_ComputePass
 		.BindImage(image)
 		.BindUniform(m_Params)
-		.CreatePipeline("vignette.comp", {}, std::nullopt);
+		.CreatePipeline("vignette.comp", {}, cache);
 }
 
 void Vignette::OnUIRender()
 {
 	VignetteParams* params = reinterpret_cast<VignetteParams*>(m_Params.Map());
 
-	if (ImGui::CollapsingHeader("Vignette"))
+	if (ImGui::TreeNode("Vignette"))
 	{
 		ImGui::DragFloat("Intensity", &params->intensity, 0.1f, 0.0f, std::numeric_limits<float>::max());
+
+		ImGui::TreePop();
 	}
 
 	m_Params.Unmap();

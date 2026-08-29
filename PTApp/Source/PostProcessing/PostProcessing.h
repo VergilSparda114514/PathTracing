@@ -12,7 +12,7 @@ public:
 
 	void Reset();
 
-	virtual void CreateBindings(const VulkanHelpers::Image& image) = 0;
+	virtual void Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache) = 0;
 	virtual void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size);
 	virtual void OnUIRender() {};
 protected:
@@ -35,17 +35,20 @@ public:
 	void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size) const;
 	void OnUIRender() const;
 
+	void SetPipelineCache(std::shared_ptr<VulkanHelpers::PipelineCache> cache);
+
 	template <typename T, typename... Args>
 		requires std::derived_from<T, PostProcessingEffect>
 	void PushEffect(Args&&... args);
 private:
 	VulkanHelpers::Image m_Image{};
+	std::shared_ptr<VulkanHelpers::PipelineCache> m_PipelineCache = nullptr;
 	storage_t m_Effects{};
 };
 
 template <typename T, typename... Args>
 	requires std::derived_from<T, PostProcessingEffect>
-void PostProcessor::PushEffect(Args&&... args)
+inline void PostProcessor::PushEffect(Args&&... args)
 {
-	m_Effects.emplace_back(std::make_unique<T>(std::forward<Args>(args)...))->CreateBindings(m_Image);
+	m_Effects.emplace_back(std::make_unique<T>(std::forward<Args>(args)...))->Create(m_Image, m_PipelineCache);
 }

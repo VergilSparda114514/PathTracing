@@ -12,19 +12,19 @@ ColorAdjustment::ColorAdjustment()
 	m_Params.UploadData(new ColorAdjustmentParams(), sizeof(ColorAdjustmentParams));
 }
 
-void ColorAdjustment::CreateBindings(const VulkanHelpers::Image& image)
+void ColorAdjustment::Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache)
 {
 	m_ComputePass
 		.BindImage(image)
 		.BindUniform(m_Params)
-		.CreatePipeline("color_adjustment.comp", {}, std::nullopt);
+		.CreatePipeline("color_adjustment.comp", {}, cache);
 }
 
 void ColorAdjustment::OnUIRender()
 {
 	ColorAdjustmentParams* ppParams = reinterpret_cast<ColorAdjustmentParams*>(m_Params.Map());
 
-	if (ImGui::CollapsingHeader("Colour Adjustment"))
+	if (ImGui::TreeNode("Colour Adjustment"))
 	{
 		const char* items[] =
 		{
@@ -37,6 +37,8 @@ void ColorAdjustment::OnUIRender()
 		ImGui::SliderFloat("Exposure", &ppParams->exposure, 0.0f, 10.0f);
 		ImGui::SliderFloat("Contrast", &ppParams->contrast, 0.0f, 10.0f);
 		ImGui::SliderFloat("Saturation", &ppParams->saturation, 0.0f, 10.0f);
+
+		ImGui::TreePop();
 	}
 
 	m_Params.Unmap();

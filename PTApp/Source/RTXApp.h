@@ -29,15 +29,15 @@ private:
 	void CreateCompositePass();
 private:
 	// RT Pipeline
-	std::array<VkDescriptorSetLayout, NUM_SETS>    m_RTDescriptorSetsLayouts{};
+	std::array<VkDescriptorSetLayout, NUM_SETS> m_RTDescriptorSetsLayouts{};
 	VkPipelineLayout                m_RTPipelineLayout = VK_NULL_HANDLE;
 	VkPipeline                      m_RTPipeline = VK_NULL_HANDLE;
 	VkDescriptorPool                m_RTDescriptorPool = VK_NULL_HANDLE;
-	std::array<VkDescriptorSet, NUM_SETS>          m_RTDescriptorSets{};
+	std::array<VkDescriptorSet, NUM_SETS> m_RTDescriptorSets{};
 
 	// Compute pipeline
 	VulkanHelpers::ComputePass      m_CompositePass{};
-	VulkanHelpers::PipelineCache    m_PipelineCache{};
+	std::shared_ptr<VulkanHelpers::PipelineCache> m_PipelineCache{};
 
 	ShaderBindingTable              m_SBT{};
 
