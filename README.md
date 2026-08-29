@@ -51,4 +51,5 @@ Credits to [iOrange](https://iorange.github.io) for the tutorial
 * [ ] NVIDIA Ray Reconstruction
 * [ ] AMD FSR
 * [ ] AMD Ray Regeneration
+* [ ] Gaussian Splatting
 
