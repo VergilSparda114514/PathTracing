@@ -63,3 +63,8 @@ void PostProcessingEffect::Reset()
 {
 	m_ComputePass.Reset();
 }
+
+void PostProcessingEffect::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size)
+{
+	m_ComputePass.Dispatch(commandBuffer, size);
+}

@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "shared_with_shaders.h"
+#include "../shared_with_shaders.h"
 
 Vignette::Vignette()
 {
@@ -18,11 +18,6 @@ void Vignette::CreateBindings(const VulkanHelpers::Image& image)
 		.BindImage(image)
 		.BindUniform(m_Params)
 		.CreatePipeline("vignette.comp", {}, std::nullopt);
-}
-
-void Vignette::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size)
-{
-	m_ComputePass.Dispatch(commandBuffer, size);
 }
 
 void Vignette::OnUIRender()

@@ -13,8 +13,8 @@ public:
 	void Reset();
 
 	virtual void CreateBindings(const VulkanHelpers::Image& image) = 0;
-	virtual void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size) = 0;
-	virtual void OnUIRender() = 0;
+	virtual void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size);
+	virtual void OnUIRender() {};
 protected:
 	VulkanHelpers::ComputePass m_ComputePass{};
 };

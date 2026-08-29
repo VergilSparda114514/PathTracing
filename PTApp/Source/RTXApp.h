@@ -7,7 +7,7 @@
 
 #include "RTScene.h"
 #include "ShaderBindingTable.h"
-#include "PostProcessing.h"
+#include "PostProcessing/PostProcessing.h"
 
 class RTXApplication final : public Application
 {

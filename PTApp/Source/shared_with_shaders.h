@@ -118,4 +118,13 @@ struct VignetteParams
 	float intensity cpp_default(1.0f);
 };
 
+struct ChromaticAberrationParams
+{
+	float intensity cpp_default(1.0f);
+
+	vec2 redOffset cpp_default(vec2(0.001f));
+	vec2 greenOffset cpp_default(vec2(0.0f));
+	vec2 blueOffset cpp_default(vec2(-0.001f));
+};
+
 #endif

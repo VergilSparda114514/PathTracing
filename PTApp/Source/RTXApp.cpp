@@ -3,8 +3,8 @@
 #include "shared_with_shaders.h"
 #include "VKKHR.h"
 
-#include "ColorAdjustment.h"
-#include "Vignette.h"
+#include "PostProcessing/ColorAdjustment.h"
+#include "PostProcessing/Vignette.h"
 
 #include <glm/gtc/type_ptr.hpp>
 

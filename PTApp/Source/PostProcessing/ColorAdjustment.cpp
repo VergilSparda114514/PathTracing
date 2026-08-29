@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "shared_with_shaders.h"
+#include "../shared_with_shaders.h"
 
 ColorAdjustment::ColorAdjustment()
 {
@@ -18,11 +18,6 @@ void ColorAdjustment::CreateBindings(const VulkanHelpers::Image& image)
 		.BindImage(image)
 		.BindUniform(m_Params)
 		.CreatePipeline("color_adjustment.comp", {}, std::nullopt);
-}
-
-void ColorAdjustment::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size)
-{
-	m_ComputePass.Dispatch(commandBuffer, size);
 }
 
 void ColorAdjustment::OnUIRender()
