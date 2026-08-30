@@ -233,10 +233,10 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 
 				mesh.CreateBuffers(positionsBufferSize, indicesBufferSize, facesBufferSize, attribsBufferSize);
 
-				vec3* positions = reinterpret_cast<vec3*>(mesh.GetPositionsBuffer().Map());
-				uint32_t* indices = reinterpret_cast<uint32_t*>(mesh.GetIndicesBuffer().Map());
-				FaceAttribute* faces = reinterpret_cast<FaceAttribute*>(mesh.GetFacesBuffer().Map());
-				VertexAttribute* attribs = reinterpret_cast<VertexAttribute*>(mesh.GetAttribsBuffer().Map());
+				vec3* positions = mesh.GetPositionsBuffer().Map<vec3>();
+				uint32_t* indices = mesh.GetIndicesBuffer().Map<uint32_t>();
+				FaceAttribute* faces = mesh.GetFacesBuffer().Map<FaceAttribute>();
+				VertexAttribute* attribs = mesh.GetAttribsBuffer().Map<VertexAttribute>();
 
 				size_t vIdx = 0;
 				for (size_t face = 0; face < numFaces; face++)
@@ -290,7 +290,7 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 		subresourceRange.baseArrayLayer = 0;
 		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-		Material* materialsBuffer = reinterpret_cast<Material*>(m_MaterialsBuffer.Map());
+		Material* materialsBuffer = m_MaterialsBuffer.Map<Material>();
 
 		for (size_t i = 0; i < materials.size(); i++)
 		{

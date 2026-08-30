@@ -49,6 +49,8 @@ namespace VulkanHelpers
         void            Destroy();
 
         void*           Map(VkDeviceSize size = UINT64_MAX, VkDeviceSize offset = 0) const;
+        template <typename T = void>
+        T*              Map(VkDeviceSize size = UINT64_MAX, VkDeviceSize offset = 0) const;
         void            Unmap() const;
 
         bool            UploadData(const void* data, VkDeviceSize size, VkDeviceSize offset = 0) const;
@@ -62,6 +64,12 @@ namespace VulkanHelpers
         VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
         VkDeviceSize    m_Size = 0;
     };
+
+    template <typename T>
+    T* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) const
+    {
+        return reinterpret_cast<T*>(Map(size, offset));
+    }
 
 
 
@@ -84,12 +92,14 @@ namespace VulkanHelpers
         VkResult    CreateImageView(VkImageViewType viewType, VkFormat format, VkImageSubresourceRange subresourceRange);
         VkResult    CreateSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode);
 
+        void        Copy(VkCommandBuffer commandBuffer, const Image& other) const;
+
         // getters
         VkFormat    GetFormat() const { return m_Format; }
         VkImage     GetImage() const { return m_Image; }
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
-		VkExtent3D GetExtent() const { return m_Extent; }
+		VkExtent3D  GetExtent() const { return m_Extent; }
     private:
         // For Vulkan
 

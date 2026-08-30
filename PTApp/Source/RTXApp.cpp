@@ -152,8 +152,8 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 
 
-	CameraParams* cameraParams = reinterpret_cast<CameraParams*>(m_Scene.camera.GetBuffer().Map());
-	LightingParams* lightingParams = reinterpret_cast<LightingParams*>(m_LightingBuffer.Map());
+	CameraParams* cameraParams = m_Scene.camera.GetBuffer().Map<CameraParams>();
+	LightingParams* lightingParams = m_LightingBuffer.Map<LightingParams>();
 
 	static bool tmpAcc = true;
 
@@ -269,7 +269,7 @@ void RTXApplication::OnUIRender(float deltaTime)
 		ImGui::Begin("Materials");
 
 		int numMaterials = m_Scene.GetMaterials().size();
-		Material* materials = reinterpret_cast<Material*>(m_Scene.GetMaterialsBuffer().Map());
+		Material* materials = m_Scene.GetMaterialsBuffer().Map<Material>();
 
 		for (int i = 0; i < numMaterials; i++)
 		{
@@ -307,7 +307,7 @@ void RTXApplication::OnUpdate(size_t, float deltaTime)
 	const std::vector<RTMesh>& meshes = m_Scene.GetMeshes();
 	const uint32_t numInstances = m_Scene.GetMeshes().size();
 
-	VkAccelerationStructureInstanceKHR* instances = reinterpret_cast<VkAccelerationStructureInstanceKHR*>(m_Scene.GetInstancesBuffer().Map());
+	VkAccelerationStructureInstanceKHR* instances = m_Scene.GetInstancesBuffer().Map<VkAccelerationStructureInstanceKHR>();
 
 	for (int i = 0; i < numInstances; i++)
 	{

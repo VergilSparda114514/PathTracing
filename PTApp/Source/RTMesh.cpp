@@ -115,7 +115,7 @@ void RTMesh::BuildBLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
 
 void RTMesh::SetPositionToGeometricCentre()
 {
-	glm::vec3* positions = reinterpret_cast<glm::vec3*>(GetPositionsBuffer().Map());
+	glm::vec3* positions = GetPositionsBuffer().Map<glm::vec3>();
 
 	position = std::accumulate(positions, positions + m_NumVertices, glm::vec3(0.0f)) / static_cast<float>(m_NumVertices);
 

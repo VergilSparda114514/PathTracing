@@ -2,10 +2,12 @@
 
 #include "PostProcessing.h"
 
+#include <filesystem>
+
 class Bloom : public PostProcessingEffect
 {
 public:
-	Bloom();
+	Bloom(const std::filesystem::path& kernelImageName);
 
 	virtual void Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanHelpers::PipelineCache> cache) override;
 	virtual void OnUIRender(bool open) override;

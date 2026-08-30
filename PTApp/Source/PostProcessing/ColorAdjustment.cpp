@@ -1,7 +1,5 @@
 #include "ColorAdjustment.h"
 
-#include <imgui.h>
-
 #include "../shared_with_shaders.h"
 
 ColorAdjustment::ColorAdjustment()
@@ -24,7 +22,7 @@ void ColorAdjustment::Create(const VulkanHelpers::Image& image, std::shared_ptr<
 
 void ColorAdjustment::OnUIRender(bool open)
 {
-	ColorAdjustmentParams* ppParams = reinterpret_cast<ColorAdjustmentParams*>(m_Params.Map());
+	ColorAdjustmentParams* ppParams = m_Params.Map<ColorAdjustmentParams>();
 
 	if (open)
 	{

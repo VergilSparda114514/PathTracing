@@ -352,9 +352,7 @@ namespace VulkanHelpers
 		bool textureHDR = false;
 		stbi_uc* imageData = nullptr;
 
-		const std::string extension = fileName.extension().string();
-
-		if (extension == ".hdr")
+		if (fileName.extension() == ".hdr")
 		{
 			textureHDR = true;
 			imageData = reinterpret_cast<stbi_uc*>(stbi_loadf(fileName.string().c_str(), &width, &height, &channels, STBI_rgb_alpha));
@@ -530,6 +528,28 @@ namespace VulkanHelpers
 		return vkCreateSampler(__details::s_Device, &samplerCreateInfo, nullptr, &m_Sampler);
 	}
 
+	void Image::Copy(VkCommandBuffer commandBuffer, const Image& other) const
+	{
+		VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+		VulkanHelpers::ImageBarrier(commandBuffer, other.GetImage(), range,
+			VK_ACCESS_2_SHADER_WRITE_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+			VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		VulkanHelpers::ImageBarrier(commandBuffer, GetImage(), range,
+			VK_ACCESS_2_NONE, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		VkImageCopy region{};
+		region.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		region.srcOffset = { 0, 0, 0 };
+		region.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		region.dstOffset = { 0, 0, 0 };
+		region.extent = GetExtent();
+
+		vkCmdCopyImage(commandBuffer, other.GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	}
+
 	// Shader Includer
 
 	shaderc_include_result* ShaderIncluder::GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth)
@@ -573,9 +593,10 @@ namespace VulkanHelpers
 	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
 		const std::vector<std::pair<std::string, std::string>>& definitions, const VkSpecializationInfo* specializationConstants)
 	{
-		std::vector<uint32_t> data{};
+#ifdef WL_DEBUG
+		static_assert(false, "ShaderC does not support Debug build -- Please build under either the Release or Dist configurations");
+#endif
 
-#ifndef WL_DEBUG
 		// Compile
 
 		shaderc::Compiler compiler{};
@@ -601,8 +622,7 @@ namespace VulkanHelpers
 			throw std::runtime_error(fileName.string() + '\n' + result.GetErrorMessage());
 		}
 
-		data.assign(result.cbegin(), result.cend());
-#endif // WL_DEBUG
+		std::vector<uint32_t> data(result.cbegin(), result.cend());
 
 		// Shader module
 

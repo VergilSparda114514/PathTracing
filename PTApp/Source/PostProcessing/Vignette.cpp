@@ -1,7 +1,5 @@
 #include "Vignette.h"
 
-#include <imgui.h>
-
 #include "../shared_with_shaders.h"
 
 Vignette::Vignette()
@@ -24,7 +22,7 @@ void Vignette::Create(const VulkanHelpers::Image& image, std::shared_ptr<VulkanH
 
 void Vignette::OnUIRender(bool open)
 {
-	VignetteParams* params = reinterpret_cast<VignetteParams*>(m_Params.Map());
+	VignetteParams* params = m_Params.Map<VignetteParams>();
 
 	if (open)
 	{

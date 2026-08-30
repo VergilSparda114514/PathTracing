@@ -213,7 +213,7 @@ bool ShaderBindingTable::CreateSBT(VkDevice device, VkPipeline rtPipeline)
 	CHECK_VK_ERROR(error, L"vkGetRayTracingShaderGroupHandlesKHR");
 
 	// now we fill our SBT
-	uint8_t* mem = static_cast<uint8_t*>(m_SBTBuffer.Map());
+	uint8_t* mem = m_SBTBuffer.Map<uint8_t>();
 	for (size_t i = 0; i < GetNumGroups(); i++)
 	{
 		memcpy(mem, groupHandles.data() + i * m_ShaderHandleSize, m_ShaderHandleSize);

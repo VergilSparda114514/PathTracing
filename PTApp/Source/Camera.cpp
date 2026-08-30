@@ -111,7 +111,7 @@ void Camera::CreateBuffer()
 
 void Camera::UpdateBuffer()
 {
-	CameraParams* params = reinterpret_cast<CameraParams*>(m_Buffer.Map());
+	CameraParams* params = m_Buffer.Map<CameraParams>();
 
 	params->camPos = position;
 	params->camDir = direction;

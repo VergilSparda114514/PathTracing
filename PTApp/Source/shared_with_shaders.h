@@ -132,4 +132,9 @@ struct DitheringParams
 	int bands cpp_default(8);
 };
 
+struct BloomParams
+{
+	float intensity cpp_default(1.0f);
+};
+
 #endif

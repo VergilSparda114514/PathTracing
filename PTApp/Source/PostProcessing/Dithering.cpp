@@ -1,7 +1,5 @@
 #include "Dithering.h"
 
-#include <imgui.h>
-
 #include "../shared_with_shaders.h"
 
 Dithering::Dithering()
@@ -24,7 +22,7 @@ void Dithering::Create(const VulkanHelpers::Image& image, std::shared_ptr<Vulkan
 
 void Dithering::OnUIRender(bool open)
 {
-	DitheringParams* params = reinterpret_cast<DitheringParams*>(m_Params.Map());
+	DitheringParams* params = m_Params.Map<DitheringParams>();
 
 	if (open)
 	{
