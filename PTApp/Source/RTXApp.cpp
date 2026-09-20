@@ -181,21 +181,8 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		if (ImGui::CollapsingHeader("Scene"))
 		{
-			if (ImGui::TreeNode("Camera"))
-			{
-				ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
-				ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNode("Fog"))
-			{
-				ImGui::DragFloat("Fog Distance", &lightingParams->fogDistance, 1.0f, 0.0f, std::numeric_limits<float>::max());
-				ImGui::SliderFloat("Fog Density", &lightingParams->fogDensity, 0.0f, 1.0f);
-
-				ImGui::TreePop();
-			}
+			ImGui::DragFloat("Fog Distance", &lightingParams->fogDistance, 1.0f, 0.0f, std::numeric_limits<float>::max());
+			ImGui::SliderFloat("Fog Density", &lightingParams->fogDensity, 0.0f, 1.0f);
 
 			if (ImGui::Button("Save"))
 			{
@@ -203,19 +190,22 @@ void RTXApplication::OnUIRender(float deltaTime)
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Camera"))
+		{
+			ImGui::DragFloat3("Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
+			ImGui::DragFloat3("Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
+
+			ImGui::Checkbox("Enable DOF", &cameraParams->enableDOF);
+			ImGui::Checkbox("Auto Focus", &cameraParams->autoFocus);
+			ImGui::SliderFloat("Aperature Size", &cameraParams->apertureSize, 0.0f, 1.0f);
+			ImGui::SliderFloat("Focus Speed", &cameraParams->focusSpeed, 0.0f, 10.0f);
+		}
+
 		if (ImGui::CollapsingHeader("Ray"))
 		{
 			ImGui::SliderInt("Rays per Pixel", &lightingParams->numSamples, 1, 3);
 			ImGui::SliderInt("Max Bounces", &lightingParams->maxRecursion, 1, 7);
 			ImGui::Checkbox("Temporal Accumulation", &tmpAcc);
-		}
-
-		if (ImGui::CollapsingHeader("Depth of Field"))
-		{
-			ImGui::Checkbox("Enable DOF", &cameraParams->enableDOF);
-			ImGui::Checkbox("Auto Focus", &cameraParams->autoFocus);
-			ImGui::SliderFloat("Aperature Size", &cameraParams->apertureSize, 0.0f, 1.0f);
-			ImGui::SliderFloat("Focus Speed", &cameraParams->focusSpeed, 0.0f, 10.0f);
 		}
 
 		if (ImGui::CollapsingHeader("Post Processing"))
