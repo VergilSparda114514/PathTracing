@@ -663,7 +663,7 @@ bool Application::InitializeSwapchain()
 
 bool Application::InitializeFencesAndCommandPool()
 {
-	VkFenceCreateInfo fenceCreateInfo;
+	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.pNext = nullptr;
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -675,7 +675,7 @@ bool Application::InitializeFencesAndCommandPool()
 		vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &fence);
 	}
 
-	VkCommandPoolCreateInfo commandPoolCreateInfo;
+	VkCommandPoolCreateInfo commandPoolCreateInfo{};
 	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	commandPoolCreateInfo.pNext = nullptr;
 	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -732,7 +732,7 @@ bool Application::InitializeCommandBuffers()
 
 bool Application::InitializeSynchronization()
 {
-	VkSemaphoreCreateInfo semaphoreCreatInfo;
+	VkSemaphoreCreateInfo semaphoreCreatInfo{};
 	semaphoreCreatInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	semaphoreCreatInfo.pNext = nullptr;
 	semaphoreCreatInfo.flags = 0;
@@ -750,7 +750,7 @@ bool Application::InitializeSynchronization()
 
 void Application::FillCommandBuffers()
 {
-	VkCommandBufferBeginInfo commandBufferBeginInfo;
+	VkCommandBufferBeginInfo commandBufferBeginInfo{};
 	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	commandBufferBeginInfo.pNext = nullptr;
 	commandBufferBeginInfo.flags = 0;

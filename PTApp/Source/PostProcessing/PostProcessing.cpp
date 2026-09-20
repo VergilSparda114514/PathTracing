@@ -37,27 +37,67 @@ void PostProcessor::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D size) con
 bool PostProcessor::OnUIRender()
 {
 	auto to_remove = m_Effects.end();
+	std::pair<storage_t::iterator, storage_t::iterator> to_swap = { m_Effects.end(), m_Effects.end() };
 
 	for (auto it = m_Effects.begin(); it != m_Effects.end(); it++)
 	{
+		ImGui::PushID(std::distance(m_Effects.begin(), it));
+
 		bool open = ImGui::TreeNode((*it)->name.c_str());
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+		if (it != m_Effects.begin())
+		{
+			ImGui::SameLine();
+
+			if (ImGui::Button("^"))
+			{
+				to_swap.first = it;
+				to_swap.second = std::prev(it);
+			}
+		}
+
+		if (std::next(it) != m_Effects.end())
+		{
+			ImGui::SameLine();
+
+			if (ImGui::Button("v"))
+			{
+				to_swap.first = it;
+				to_swap.second = std::next(it);
+			}
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("-"))
+		{
+			to_remove = it;
+		}
+
+		ImGui::PopStyleColor();
 
 		(*it)->OnUIRender(open);
 
 		if (open)
 		{
-			if (ImGui::Button("Remove"))
-			{
-				to_remove = it;
-			}
-
 			ImGui::TreePop();
 		}
+
+		ImGui::PopID();
 	}
 
 	if (to_remove != m_Effects.end())
 	{
 		m_Effects.erase(to_remove);
+
+		return true;
+	}
+
+	if (to_swap.first != m_Effects.end())
+	{
+		std::swap(*to_swap.first, *to_swap.second);
 
 		return true;
 	}

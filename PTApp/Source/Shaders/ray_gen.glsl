@@ -97,7 +97,21 @@ vec3 TraceRay()
 		const vec3 hitNormal = PrimaryRay.normalAndObjID.xyz;
 		const vec3 hitPos = origin + direction * PrimaryRay.colorAndDist.w;
 
+		if (dot(direction, hitNormal) <= 0.0f && litParams.fogDensity > 0.0f)
+		{
+			float dst = (litParams.fogDistance - log(Rand(seed))) / litParams.fogDensity;
+
+			if (dst < hitDistance)
+			{
+				origin += direction * dst;
+				direction = RandS(seed);
+
+				continue;
+			}
+		}
+
 		const Material material = Materials[PrimaryRay.matID];
+
 		const float metallicRnd = Rand(seed);
 		const float dielectricRnd = Rand(seed);
 

@@ -81,9 +81,11 @@ struct LightingParams
 {
 	int numSamples cpp_default(1);
 	int maxRecursion cpp_default(5);
-	uint frame;
-	uint accumulationFrame;
-	float deltaTime;
+	uint frame cpp_default(0);
+	uint accumulationFrame cpp_default(0);
+	float deltaTime cpp_default(0.0f);
+	float fogDistance cpp_default(10.0f);
+	float fogDensity cpp_default(0.015f);
 };
 
 struct CameraParams
@@ -130,6 +132,7 @@ struct ChromaticAberrationParams
 struct DitheringParams
 {
 	int bands cpp_default(8);
+	float spread cpp_default(1.0f);
 };
 
 struct BloomParams

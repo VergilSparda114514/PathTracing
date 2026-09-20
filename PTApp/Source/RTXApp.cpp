@@ -181,8 +181,21 @@ void RTXApplication::OnUIRender(float deltaTime)
 
 		if (ImGui::CollapsingHeader("Scene"))
 		{
-			ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
-			ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
+			if (ImGui::TreeNode("Camera"))
+			{
+				ImGui::DragFloat3("Camera Position", glm::value_ptr(m_Scene.camera.position), 0.1f);
+				ImGui::DragFloat3("Camera Direction", glm::value_ptr(m_Scene.camera.direction), 0.1f);
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Fog"))
+			{
+				ImGui::DragFloat("Fog Distance", &lightingParams->fogDistance, 1.0f, 0.0f, std::numeric_limits<float>::max());
+				ImGui::SliderFloat("Fog Density", &lightingParams->fogDensity, 0.0f, 1.0f);
+
+				ImGui::TreePop();
+			}
 
 			if (ImGui::Button("Save"))
 			{

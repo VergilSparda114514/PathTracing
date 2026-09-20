@@ -27,6 +27,7 @@ void Dithering::OnUIRender(bool open)
 	if (open)
 	{
 		ImGui::DragInt("Bands", &params->bands, 1, 2, std::numeric_limits<int>::max());
+		ImGui::SliderFloat("Spread", &params->spread, 0.0f, 1.0f);
 	}
 
 	m_Params.Unmap();
