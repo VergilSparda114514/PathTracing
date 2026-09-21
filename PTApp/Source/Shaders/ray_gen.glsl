@@ -10,8 +10,8 @@
 layout(set = SCENE_SET, binding = SCENE_AS_BINDING)           uniform accelerationStructureEXT Scene;
 layout(set = SCENE_SET, binding = SCENE_IMG_BINDING, rgba32f) uniform image2D ResultImage;
 
-layout(set = SCENE_SET, binding = SCENE_LIT_BINDING, std140) uniform LitData {
-	LightingParams litParams;
+layout(set = SCENE_SET, binding = SCENE_LIT_BINDING, std140) uniform SceneData {
+	LightingParams scene;
 };
 
 layout(set = SCENE_SET, binding = SCENE_CAM_BINDING, std430) buffer CamData {
@@ -32,7 +32,7 @@ layout(set = RESO_SET, binding = 1, std430) buffer PrevReservoirBuffer {
 
 layout(location = 0) rayPayloadEXT RayPayload PrimaryRay;
 
-uint seed = (gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x) * litParams.frame;
+uint seed = (gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x) * scene.frame;
 
 vec3 CalcRayDir(vec2 screenUV)
 {
@@ -73,7 +73,7 @@ vec3 TraceRay()
 
 	PrimaryRay.specular = true;
 
-	for (int i = 0; i <= litParams.maxRecursion; i++)
+	for (int i = 0; i <= scene.maxRecursion; i++)
 	{
 		PrimaryRay.bounce = i;
 		traceRayEXT(Scene, gl_RayFlagsOpaqueEXT, 0xFF, 0, 1, 0, origin, tMin, direction, tMax, 0);
@@ -84,7 +84,7 @@ vec3 TraceRay()
 		if (i == 0 && center && camParams.autoFocus)
 		{
 			float targetDistance = hitDistance >= 0.0f ? hitDistance : tMax;
-			camParams.focalLength = mix(camParams.focalLength, targetDistance, litParams.deltaTime * camParams.focusSpeed);
+			camParams.focalLength = mix(camParams.focalLength, targetDistance, scene.deltaTime * camParams.focusSpeed);
 		}
 
 		// if hit background - rage quit
@@ -97,9 +97,9 @@ vec3 TraceRay()
 		const vec3 hitNormal = PrimaryRay.normalAndObjID.xyz;
 		const vec3 hitPos = origin + direction * PrimaryRay.colorAndDist.w;
 
-		if (dot(direction, hitNormal) < 0.0f && litParams.fogDensity > 0.0f)
+		if (dot(direction, hitNormal) < 0.0f && scene.fogDensity > 0.0f)
 		{
-			float dst = (litParams.fogDistance - log(Rand(seed))) / litParams.fogDensity;
+			float dst = (scene.fogDistance - log(Rand(seed)) * scene.fogSpread) / scene.fogDensity;
 
 			if (dst < hitDistance)
 			{
@@ -236,22 +236,22 @@ void main()
 	const ivec2 coord = ivec2(gl_LaunchIDEXT.xy);
 	vec3 resultColor = vec3(0.0f);
 
-	for (int i = 1; i <= litParams.numSamples; i++)
+	for (int i = 1; i <= scene.numSamples; i++)
 	{
 		seed += i;
 		resultColor += TraceRay();
 	}
 	
-	resultColor = resultColor / litParams.numSamples;
+	resultColor = resultColor / scene.numSamples;
 
-	if (litParams.accumulationFrame == 0)
+	if (scene.accumulationFrame == 0)
 	{
 		imageStore(ResultImage, coord, vec4(resultColor, 1.0f));
 	}
 
 	else
 	{
-		float t = 1.0f / float(litParams.accumulationFrame + 1);
+		float t = 1.0f / float(scene.accumulationFrame + 1);
 		vec3 a = imageLoad(ResultImage, coord).rgb;
 		imageStore(ResultImage, coord, vec4(mix(a, resultColor, t), 1.0f));
 	}

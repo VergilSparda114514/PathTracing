@@ -84,8 +84,10 @@ struct LightingParams
 	uint frame cpp_default(0);
 	uint accumulationFrame cpp_default(0);
 	float deltaTime cpp_default(0.0f);
+
 	float fogDistance cpp_default(10.0f);
 	float fogDensity cpp_default(0.015f);
+	float fogSpread cpp_default(1.0f);
 };
 
 struct CameraParams

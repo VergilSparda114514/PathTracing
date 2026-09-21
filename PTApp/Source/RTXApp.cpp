@@ -183,6 +183,7 @@ void RTXApplication::OnUIRender(float deltaTime)
 		{
 			ImGui::DragFloat("Fog Distance", &lightingParams->fogDistance, 1.0f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::SliderFloat("Fog Density", &lightingParams->fogDensity, 0.0f, 1.0f);
+			ImGui::DragFloat("Fog Spread", &lightingParams->fogSpread, 1.0f, 0.0f, std::numeric_limits<float>::max());
 
 			if (ImGui::Button("Save"))
 			{
