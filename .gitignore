@@ -13,7 +13,7 @@ Makefile
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
-*.sln
+*.slnx
 
 # Exclude
 !vendor/bin
