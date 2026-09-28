@@ -20,22 +20,9 @@ float G1(float alpha, vec3 X, vec3 N)
 	return NdotX / max((NdotX * (1.0 - k) + k), epsilon2);
 }
 
-float G2(float alpha, vec3 X, vec3 N)
-{
-	float k = alpha / 2.0;
-	float NdotX = abs(dot(N, X));
-
-	return NdotX / max((NdotX * (1.0 - k) + k), epsilon2);
-}
-
 float G(float alpha, vec3 V, vec3 N, vec3 L)
 {
 	return G1(alpha, V, N) * G1(alpha, L, N);
-}
-
-float GG(float alpha, vec3 V, vec3 N, vec3 L)
-{
-	return G2(alpha, V, N) * G2(alpha, L, N);
 }
 
 float Luminance(vec3 color)
@@ -69,7 +56,7 @@ vec3 BTDF(vec3 V, vec3 N, vec3 L, vec3 H, vec3 F, float alpha, float etaI, float
 	const float VdotH = abs(dot(V, H));
 	const float LdotH = abs(dot(L, H));
 
-	vec3 numer = D(alpha, N, H) * GG(alpha, V, N, L) * (1.0 - F) * etaT * etaT * VdotH * LdotH;
+	vec3 numer = D(alpha, N, H) * G(alpha, V, N, L) * (1.0 - F) * etaT * etaT * VdotH * LdotH;
 	float denom = NdotV * NdotL * pow(etaI * VdotH + etaT * LdotH, 2.0);
 
 	return numer / max(denom, epsilon2);
@@ -85,7 +72,7 @@ float GGXBTDFPDF(vec3 V, vec3 N, vec3 L, vec3 H, float alpha, float eta)
 
 	float dwh_dwi = (eta * eta * LdotH) / max(denom * denom, epsilon2);
 
-	return D(alpha, N, H) * G2(alpha, V, N) * NdotH * dwh_dwi;
+	return D(alpha, N, H) * G1(alpha, V, N) * NdotH * dwh_dwi;
 }
 
 #endif
