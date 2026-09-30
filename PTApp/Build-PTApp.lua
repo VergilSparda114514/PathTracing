@@ -27,9 +27,9 @@ project "Path Tracing"
 
    links
    {
-      "PTCore",
+      "PTCore"
    }
-   
+
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
    objdir ("../bin-int/" .. outputdir .. "/%{prj.name}")
 
