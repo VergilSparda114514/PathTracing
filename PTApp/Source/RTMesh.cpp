@@ -40,24 +40,11 @@ void RTMesh::BuildBLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
 		&range.primitiveCount,
 		&sizeInfo);
 
-	VulkanHelpers::Buffer scratchBuffer;
+	VulkanHelpers::Buffer scratchBuffer{};
 	VkResult error = scratchBuffer.Create(sizeInfo.buildScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	CHECK_VK_ERROR(error, "scratchBuffer.Create");
 
-	VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	commandBufferAllocateInfo.commandPool = cmdPool;
-	commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	commandBufferAllocateInfo.commandBufferCount = 1;
-
-	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-	error = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &commandBuffer);
-	CHECK_VK_ERROR(error, "vkAllocateCommandBuffers");
-
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
 
 	VkMemoryBarrier memoryBarrier{};
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -66,8 +53,7 @@ void RTMesh::BuildBLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
 
 	// Build BLASes
 
-	m_BLAS.buffer.Create(sizeInfo.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_BLAS.buffer.Create(sizeInfo.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	VkAccelerationStructureCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -93,17 +79,7 @@ void RTMesh::BuildBLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
 		VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
 		0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
-	vkEndCommandBuffer(commandBuffer);
-
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-	error = vkQueueWaitIdle(queue);
-	CHECK_VK_ERROR(error, "vkQueueWaitIdle");
-	vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffer);
+	VulkanHelpers::EndSingleTimeCommandBuffer(commandBuffer);
 
 	// Get handle
 
