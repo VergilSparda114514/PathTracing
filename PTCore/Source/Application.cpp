@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "Singleton.h"
 
+#include <algorithm>
+
 static PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR = nullptr;
 static PFN_vkCmdEndRenderingKHR CmdEndRenderingKHR = nullptr;
 
@@ -296,7 +298,7 @@ void Application::InitializeImgui()
 	init_info.PipelineInfoMain.Subpass = 0;
 	init_info.UseDynamicRendering = true;
 	init_info.PipelineInfoMain.PipelineRenderingCreateInfo = createInfo;
-	init_info.MinImageCount = gMaxFramesInFlight;
+	init_info.MinImageCount = g_MaxFramesInFlight;
 	init_info.ImageCount = static_cast<uint32_t>(m_SwapchainImages.size());
 	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	ImGui_ImplVulkan_Init(&init_info);
@@ -563,8 +565,8 @@ bool Application::InitializeSwapchain()
 	}
 
 	// make sure we stay in our surface's limits
-	m_Settings.resolutionX = Clamp(m_Settings.resolutionX, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.currentExtent.width);
-	m_Settings.resolutionY = Clamp(m_Settings.resolutionY, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.currentExtent.height);
+	m_Settings.resolutionX = std::clamp(m_Settings.resolutionX, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.currentExtent.width);
+	m_Settings.resolutionY = std::clamp(m_Settings.resolutionY, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.currentExtent.height);
 
 	uint32_t presentModeCount;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &presentModeCount, nullptr);
@@ -931,7 +933,7 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 		return;
 	}
 
-	m_CurrentFrame = (m_CurrentFrame + 1) % gMaxFramesInFlight;
+	m_CurrentFrame = (m_CurrentFrame + 1) % g_MaxFramesInFlight;
 }
 
 void Application::RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData)

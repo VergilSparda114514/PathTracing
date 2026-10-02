@@ -117,7 +117,7 @@ void Camera::UpdateBuffer()
 	params->camDir = direction;
 	params->camUp = GetUp();
 	params->camSide = GetSide();
-	params->camNearFarFov = vec3(GetNearPlane(), GetFarPlane(), Deg2Rad(GetFovY()));
+	params->camNearFarFov = vec3(GetNearPlane(), GetFarPlane(), glm::radians(GetFovY()));
 
 	m_Buffer.Unmap();
 }

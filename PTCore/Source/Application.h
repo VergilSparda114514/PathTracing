@@ -9,9 +9,7 @@
 
 #include "GLFW/glfw3.h"
 
-#include "Common.h"
-
-constexpr int gMaxFramesInFlight = 3;
+constexpr int g_MaxFramesInFlight = 3;
 
 struct AppSettings
 {

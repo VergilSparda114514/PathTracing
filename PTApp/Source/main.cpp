@@ -7,7 +7,7 @@ int main()
 	Singleton<RTXApplication>::Get().Run();
 }
 
-#ifdef _WIN64
+#ifdef _WIN32
 
 #include <Windows.h>
 
