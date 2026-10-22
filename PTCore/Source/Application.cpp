@@ -196,7 +196,7 @@ void Application::Shutdown() const
 
 bool Application::InitializeVulkan()
 {
-	VkApplicationInfo appInfo;
+	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pNext = nullptr;
 	appInfo.pApplicationName = m_Settings.name.c_str();
@@ -219,7 +219,7 @@ bool Application::InitializeVulkan()
 		layers.emplace_back("VK_LAYER_KHRONOS_validation");
 	}
 
-	VkInstanceCreateInfo instInfo;
+	VkInstanceCreateInfo instInfo{};
 	instInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instInfo.pNext = nullptr;
 	instInfo.flags = 0;
@@ -308,7 +308,8 @@ bool Application::InitializeDevicesAndQueues()
 {
 	uint32_t numPhysDevices = 0;
 	VkResult error = vkEnumeratePhysicalDevices(m_Instance, &numPhysDevices, nullptr);
-	if (VK_SUCCESS != error || !numPhysDevices) {
+	if (VK_SUCCESS != error || !numPhysDevices)
+	{
 		CHECK_VK_ERROR(error, "vkEnumeratePhysicalDevices");
 		return false;
 	}
@@ -317,17 +318,21 @@ bool Application::InitializeDevicesAndQueues()
 	vkEnumeratePhysicalDevices(m_Instance, &numPhysDevices, physDevices.data());
 	m_PhysicalDevice = VK_NULL_HANDLE;
 
-	for (VkPhysicalDevice dev : physDevices) {
+	for (VkPhysicalDevice dev : physDevices)
+	{
 		VkPhysicalDeviceProperties props{};
 		vkGetPhysicalDeviceProperties(dev, &props);
-		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
 			m_PhysicalDevice = dev;
 			break;
 		}
 	}
 
 	if (m_PhysicalDevice == VK_NULL_HANDLE)
+	{
 		m_PhysicalDevice = physDevices[0];
+	}
 
 	// find our queues
 	const VkQueueFlagBits askingFlags[3] = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
@@ -391,7 +396,7 @@ bool Application::InitializeDevicesAndQueues()
 	std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
 	const float priority = 0.0f;
 
-	VkDeviceQueueCreateInfo deviceQueueCreateInfo;
+	VkDeviceQueueCreateInfo deviceQueueCreateInfo{};
 	deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	deviceQueueCreateInfo.pNext = nullptr;
 	deviceQueueCreateInfo.flags = 0;
@@ -415,10 +420,11 @@ bool Application::InitializeDevicesAndQueues()
 	VkPhysicalDeviceFeatures2 features2{};
 	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructure{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR rayTracingStructure{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
 	VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddress{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
 	VkPhysicalDeviceDynamicRenderingFeatures dynamicRendering{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES };
+	VkPhysicalDeviceRayTracingMotionBlurFeaturesNV motionBlur{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV };
 
 	std::vector<const char*> deviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
@@ -430,18 +436,27 @@ bool Application::InitializeDevicesAndQueues()
 		deviceExtensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
 		deviceExtensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 		deviceExtensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+		deviceExtensions.emplace_back(VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME);
 
 		// VK_KHR_ray_tracing requires VK_EXT_descriptor_indexing extension so we make sure it's enabled as well
 		m_Settings.supportDescriptorIndexing = true;
 
-		dynamicRendering.dynamicRendering = VK_TRUE;
-		bufferDeviceAddress.pNext = &dynamicRendering;
-		bufferDeviceAddress.bufferDeviceAddress = VK_TRUE;
-		rayTracingPipeline.pNext = &bufferDeviceAddress;
+		features2.pNext = &accelerationStructure;
+
+		accelerationStructure.accelerationStructure = VK_TRUE;
+		accelerationStructure.pNext = &rayTracingPipeline;
+
 		rayTracingPipeline.rayTracingPipeline = VK_TRUE;
-		rayTracingStructure.pNext = &rayTracingPipeline;
-		rayTracingStructure.accelerationStructure = VK_TRUE;
-		features2.pNext = &rayTracingStructure;
+		rayTracingPipeline.pNext = &bufferDeviceAddress;
+
+		bufferDeviceAddress.bufferDeviceAddress = VK_TRUE;
+		bufferDeviceAddress.pNext = &dynamicRendering;
+
+		dynamicRendering.dynamicRendering = VK_TRUE;
+		dynamicRendering.pNext = &motionBlur;
+
+		motionBlur.rayTracingMotionBlur = VK_TRUE;
+		motionBlur.rayTracingMotionBlurPipelineTraceRaysIndirect = VK_FALSE;
 	}
 
 	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{};
@@ -461,7 +476,7 @@ bool Application::InitializeDevicesAndQueues()
 
 	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &features2); // enable all the features our GPU has
 
-	VkDeviceCreateInfo deviceCreateInfo;
+	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = &features2;
 	deviceCreateInfo.flags = 0;
@@ -492,7 +507,7 @@ bool Application::InitializeDevicesAndQueues()
 		m_RTProperties = {};
 		m_RTProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 
-		VkPhysicalDeviceProperties2 devProps;
+		VkPhysicalDeviceProperties2 devProps{};
 		devProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 		devProps.pNext = &m_RTProperties;
 		devProps.properties = {};

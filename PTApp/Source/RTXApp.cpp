@@ -884,7 +884,9 @@ void RTXApplication::CreateRTPipelineAndSBT()
 
 	// Shader binding table
 
-	VulkanHelpers::Shader rayGenShader, rayChitShader, rayMissShader;
+	VulkanHelpers::Shader rayGenShader{};
+	VulkanHelpers::Shader rayChitShader{};
+	VulkanHelpers::Shader rayMissShader{};
 
 	rayGenShader.Compile("ray_gen.glsl", shaderc_glsl_raygen_shader, VK_SHADER_STAGE_RAYGEN_BIT_KHR, {});
 	rayChitShader.Compile("ray_chit.glsl", shaderc_glsl_closesthit_shader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, {});
@@ -901,17 +903,18 @@ void RTXApplication::CreateRTPipelineAndSBT()
 	m_PipelineCache->Create("pipeline_cache.bin");
 
 	// RT pipeline & SBT
+	
+	VkRayTracingPipelineCreateInfoKHR rtPipelineInfo{};
+	rtPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+	rtPipelineInfo.flags = VK_PIPELINE_CREATE_RAY_TRACING_ALLOW_MOTION_BIT_NV;
+	rtPipelineInfo.stageCount = m_SBT.GetNumStages();
+	rtPipelineInfo.pStages = m_SBT.GetStages();
+	rtPipelineInfo.groupCount = m_SBT.GetNumGroups();
+	rtPipelineInfo.pGroups = m_SBT.GetGroups();
+	rtPipelineInfo.maxPipelineRayRecursionDepth = 16;
+	rtPipelineInfo.layout = m_RTPipelineLayout;
 
-	VkRayTracingPipelineCreateInfoKHR rayPipelineInfo{};
-	rayPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
-	rayPipelineInfo.stageCount = m_SBT.GetNumStages();
-	rayPipelineInfo.pStages = m_SBT.GetStages();
-	rayPipelineInfo.groupCount = m_SBT.GetNumGroups();
-	rayPipelineInfo.pGroups = m_SBT.GetGroups();
-	rayPipelineInfo.maxPipelineRayRecursionDepth = 1;
-	rayPipelineInfo.layout = m_RTPipelineLayout;
-
-	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_PipelineCache->Get(), 1, &rayPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
+	error = CreateRayTracingPipelinesKHR(m_Device, VK_NULL_HANDLE, m_PipelineCache->Get(), 1, &rtPipelineInfo, VK_NULL_HANDLE, &m_RTPipeline);
 	CHECK_VK_ERROR(error, "vkCreateRayTracingPipelinesKHR");
 
 	m_SBT.CreateSBT(m_Device, m_RTPipeline);
