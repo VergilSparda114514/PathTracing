@@ -1,5 +1,5 @@
-#include "Application.h"
-#include "Singleton.h"
+#include <Application.h>
+#include <Singleton.h>
 
 #include <algorithm>
 
@@ -348,7 +348,7 @@ bool Application::InitializeDevicesAndQueues()
 		const VkQueueFlagBits flag = askingFlags[i];
 		uint32_t& queueIdx = queuesIndices[i];
 
-		if (flag == VK_QUEUE_COMPUTE_BIT)
+		if (flag & VK_QUEUE_COMPUTE_BIT)
 		{
 			for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j)
 			{
@@ -361,7 +361,7 @@ bool Application::InitializeDevicesAndQueues()
 			}
 		}
 
-		else if (flag == VK_QUEUE_TRANSFER_BIT)
+		else if (flag & VK_QUEUE_TRANSFER_BIT)
 		{
 			for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j)
 			{
@@ -612,7 +612,7 @@ bool Application::InitializeSwapchain()
 
 	VkSwapchainKHR prevSwapchain = m_Swapchain;
 
-	VkSwapchainCreateInfoKHR swapchainCreateInfo;
+	VkSwapchainCreateInfoKHR swapchainCreateInfo{};
 	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapchainCreateInfo.pNext = nullptr;
 	swapchainCreateInfo.flags = 0;
@@ -657,7 +657,7 @@ bool Application::InitializeSwapchain()
 	m_SwapchainImageViews.resize(imageCount);
 	for (uint32_t i = 0; i < imageCount; i++)
 	{
-		VkImageViewCreateInfo imageViewCreateInfo;
+		VkImageViewCreateInfo imageViewCreateInfo{};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewCreateInfo.pNext = nullptr;
 		imageViewCreateInfo.format = m_SurfaceFormat.format;
