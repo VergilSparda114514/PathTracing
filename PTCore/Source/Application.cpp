@@ -880,6 +880,8 @@ void Application::RecreateSwapchain()
 //
 void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 {
+	TaskUpdater::Update();
+
 	if (m_FramebufferResized)
 	{
 		m_FramebufferResized = false;

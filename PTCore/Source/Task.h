@@ -3,9 +3,11 @@
 #include <coroutine>
 #include <exception>
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <atomic>
 #include <functional>
+#include <typeinfo>
 
 #include <Singleton.h>
 
@@ -87,6 +89,26 @@ private:
 	std::exception_ptr m_Exception = nullptr;
 };
 
+class TaskUpdater
+{
+public:
+	template <class T>
+	static void ScheduleUpdate()
+	{
+		Singleton<TaskUpdater>::Get().m_Schedulers[typeid(T).hash_code()] = [] { T::Update(); };
+	}
+
+	template <class T>
+	static void DescheduleUpdate()
+	{
+		Singleton<TaskUpdater>::Get().m_Schedulers.erase(typeid(T).hash_code());
+	}
+
+	static void Update();
+private:
+	std::unordered_map<size_t, std::function<void()>> m_Schedulers{};
+};
+
 template <typename T = void>
 class Task
 {
@@ -141,6 +163,7 @@ public:
 		static std::atomic<size_t> nextID = 0;
 
 		Singleton<scheduler_type>::Get().emplace_back(std::forward<Task>(task)).m_ID = ++nextID;
+		TaskUpdater::ScheduleUpdate<Task>();
 
 		return nextID;
 	}
@@ -161,11 +184,16 @@ public:
 	{
 		scheduler_type& scheduler = Singleton<scheduler_type>::Get();
 
-		std::ranges::for_each(scheduler, [](Task& task) { if (task) task(); });
-
 		while (!std::ranges::all_of(scheduler, [](Task& task) -> bool { return task; }))
 		{
 			scheduler.erase(std::ranges::find_if_not(scheduler, [](Task& task) -> bool { return task; }));
+		}
+
+		std::ranges::for_each(scheduler, [](Task& task) { task(); });
+
+		if (scheduler.size() <= 0)
+		{
+			TaskUpdater::DescheduleUpdate<Task>();
 		}
 	}
 
