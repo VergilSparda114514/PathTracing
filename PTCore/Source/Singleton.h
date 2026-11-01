@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 template <typename T>
 class Singleton
 {
@@ -9,7 +11,7 @@ public:
 
 	static T& Get()
 	{
-		static T instance;
+		static std::remove_cvref_t<T> instance{};
 		return instance;
 	}
 
