@@ -86,22 +86,85 @@ private:
 	std::exception_ptr m_Exception = nullptr;
 };
 
-class TaskUpdater
+class TaskScheduler
 {
 public:
-	template <class T>
-	static void ScheduleUpdate()
+public:
+	template <class Task>
+	static const std::vector<Task>& GetTasks()
 	{
-		Singleton<TaskUpdater>::Get().m_Schedulers[typeid(T).hash_code()] = [] { T::Update(); };
+		return Singleton<std::vector<Task>>::Get();
 	}
 
-	template <class T>
-	static void DescheduleUpdate()
+	template <class Task>
+	static size_t Schedule(Task&& task)
 	{
-		Singleton<TaskUpdater>::Get().m_Schedulers.erase(typeid(T).hash_code());
+		static std::atomic<size_t> nextID = 0;
+
+		Singleton<std::vector<Task>>::Get().emplace_back(std::forward<Task>(task)).m_ID = ++nextID;
+		ScheduleUpdate<Task>();
+
+		return nextID;
+	}
+
+	template <class Task>
+	static void Deschedule(size_t id)
+	{
+		std::vector<Task>& tasks = Singleton<std::vector<Task>>::Get();
+		tasks.erase(std::ranges::find_if(tasks, [id](Task& task) { return task.GetID() == id; }));
+	}
+
+	template <class Task>
+	static bool TrySchedule(size_t& id, Task&& task)
+	{
+		bool done = Done<Task>(id);
+
+		if (done)
+		{
+			id = Schedule<Task>(std::forward<Task>(task));
+		}
+
+		return done;
+	}
+
+	template <class Task>
+	static bool Done(size_t id)
+	{
+		std::vector<Task>& tasks = Singleton<std::vector<Task>>::Get();
+		return std::ranges::find_if(tasks, [id](Task& task) { return task.GetID() == id; }) == tasks.end();
 	}
 
 	static void Update();
+private:
+	template <class Task>
+	static void ScheduleUpdate()
+	{
+		Singleton<TaskScheduler>::Get().m_Schedulers[typeid(Task).hash_code()] = [] { Update<Task>(); };
+	}
+
+	template <class Task>
+	static void DescheduleUpdate()
+	{
+		Singleton<TaskScheduler>::Get().m_Schedulers.erase(typeid(Task).hash_code());
+	}
+
+	template <class Task>
+	static void Update()
+	{
+		std::vector<Task>& tasks = Singleton<std::vector<Task>>::Get();
+
+		while (!std::ranges::all_of(tasks, [](Task& task) -> bool { return task; }))
+		{
+			tasks.erase(std::ranges::find_if_not(tasks, [](Task& task) -> bool { return task; }));
+		}
+
+		std::ranges::for_each(tasks, [](Task& task) { task(); });
+
+		if (tasks.size() <= 0)
+		{
+			DescheduleUpdate<Task>();
+		}
+	}
 private:
 	std::unordered_map<size_t, std::function<void()>> m_Schedulers{};
 };
@@ -120,7 +183,6 @@ public:
 	};
 
 	using handle_type = std::coroutine_handle<promise_type>;
-	using scheduler_type = std::vector<Task>;
 public:
 	Task(const Task&) = delete;
 	Task(Task&& other) noexcept : m_Coro(std::exchange(other.m_Coro, {})) {}
@@ -158,57 +220,9 @@ public:
 		m_Coro = std::exchange(other.m_Coro, {});
 		return *this;
 	}
-public:
-	static const scheduler_type& GetTasks()
-	{
-		return Singleton<scheduler_type>::Get();
-	}
-
-	static size_t Schedule(Task&& task)	
-	{
-		static std::atomic<size_t> nextID = 0;
-
-		Singleton<scheduler_type>::Get().emplace_back(std::forward<Task>(task)).m_ID = ++nextID;
-		TaskUpdater::ScheduleUpdate<Task>();
-
-		return nextID;
-	}
-
-	static bool TrySchedule(size_t& id, Task&& task)
-	{
-		bool done = Done(id);
-
-		if (done)
-		{
-			id = Schedule(std::forward<Task>(task));
-		}
-
-		return done;
-	}
-
-	static void Update()
-	{
-		scheduler_type& scheduler = Singleton<scheduler_type>::Get();
-
-		while (!std::ranges::all_of(scheduler, [](Task& task) -> bool { return task; }))
-		{
-			scheduler.erase(std::ranges::find_if_not(scheduler, [](Task& task) -> bool { return task; }));
-		}
-
-		std::ranges::for_each(scheduler, [](Task& task) { task(); });
-
-		if (scheduler.size() <= 0)
-		{
-			TaskUpdater::DescheduleUpdate<Task>();
-		}
-	}
-
-	static bool Done(size_t id)
-	{
-		scheduler_type& scheduler = Singleton<scheduler_type>::Get();
-		return std::ranges::find_if(scheduler, [id](Task& task) { return task.GetID() == id; }) == scheduler.end();
-	}
 private:
+	friend class TaskScheduler;
+
 	explicit Task(handle_type coro) : m_Coro(coro) {}
 private:
 	size_t m_ID = 0;

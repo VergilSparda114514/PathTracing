@@ -885,13 +885,13 @@ Task<> Application::RecreateSwapchain()
 //
 void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 {
-	TaskUpdater::Update();
+	TaskScheduler::Update();
 
 	static size_t taskID = 0;
 
 	if (m_FramebufferResized)
 	{
-		Task<>::TrySchedule(taskID, RecreateSwapchain());
+		TaskScheduler::TrySchedule(taskID, RecreateSwapchain());
 		return;
 	}
 
@@ -902,7 +902,7 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		Task<>::TrySchedule(taskID, RecreateSwapchain());
+		TaskScheduler::TrySchedule(taskID, RecreateSwapchain());
 		return;
 	}
 
@@ -947,7 +947,7 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
-		Task<>::TrySchedule(taskID, RecreateSwapchain());
+		TaskScheduler::TrySchedule(taskID, RecreateSwapchain());
 	}
 
 	else if (result != VK_SUCCESS)
