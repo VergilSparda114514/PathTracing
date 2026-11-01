@@ -11,15 +11,7 @@
 
 #include <Singleton.h>
 
-#define await(x) do\
-{\
-	auto gen = x;\
-	while (gen)\
-	{\
-		co_await std::suspend_always{};\
-		gen();\
-	}\
-} while (false)
+#define await(x) for (auto gen = (x); gen; co_await std::suspend_always{}, gen())
 
 template <bool AwaitReady = false>
 class awaitable
@@ -58,7 +50,12 @@ public:
 		return {};
 	}
 
-	void return_void() {}
+	template <std::convertible_to<T> U>
+	void return_value(U&& value)
+	{
+		m_Value = value;
+	}
+
 	void unhandled_exception()
 	{
 		m_Exception = std::current_exception();
@@ -123,6 +120,7 @@ public:
 	};
 
 	using handle_type = std::coroutine_handle<promise_type>;
+	using scheduler_type = std::vector<Task>;
 public:
 	Task(const Task&) = delete;
 	Task(Task&& other) noexcept : m_Coro(std::exchange(other.m_Coro, {})) {}
@@ -133,6 +131,16 @@ public:
 		{
 			m_Coro.destroy();
 		}
+	}
+
+	Task& Join()
+	{
+		while (*this)
+		{
+			(*this)();
+		}
+
+		return *this;
 	}
 
 	constexpr size_t GetID() const { return m_ID; }
@@ -150,8 +158,6 @@ public:
 		m_Coro = std::exchange(other.m_Coro, {});
 		return *this;
 	}
-public:
-	using scheduler_type = std::vector<Task>;
 public:
 	static const scheduler_type& GetTasks()
 	{

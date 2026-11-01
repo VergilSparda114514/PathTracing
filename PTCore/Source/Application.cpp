@@ -85,10 +85,9 @@ bool Application::Initialize()
 	{
 		return false;
 	}
-	if (!InitializeSwapchain())
-	{
-		return false;
-	}
+
+	InitializeSwapchain().Join();
+
 	if (!InitializeFencesAndCommandPool())
 	{
 		return false;
@@ -114,7 +113,7 @@ bool Application::Initialize()
 	InitializeImgui();
 
 	InitApp();
-	FillCommandBuffers();
+	FillCommandBuffers().Join();
 
 	return true;
 }
@@ -569,14 +568,14 @@ bool Application::InitializeSurface()
 	return true;
 }
 
-bool Application::InitializeSwapchain()
+Task<> Application::InitializeSwapchain()
 {
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 	VkResult error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &surfaceCapabilities);
 
 	if (VK_SUCCESS != error)
 	{
-		return false;
+		// return false;
 	}
 
 	// make sure we stay in our surface's limits
@@ -632,21 +631,21 @@ bool Application::InitializeSwapchain()
 	swapchainCreateInfo.clipped = VK_TRUE;
 	swapchainCreateInfo.oldSwapchain = prevSwapchain;
 
-	error = vkCreateSwapchainKHR(m_Device, &swapchainCreateInfo, nullptr, &m_Swapchain);
+	co_await awaitable{ [this, &error, &swapchainCreateInfo] { error = vkCreateSwapchainKHR(m_Device, &swapchainCreateInfo, nullptr, &m_Swapchain); } };
 	if (VK_SUCCESS != error)
 	{
-		return false;
+		// return false;
 	}
 
 	if (prevSwapchain)
 	{
 		for (VkImageView& imageView : m_SwapchainImageViews)
 		{
-			vkDestroyImageView(m_Device, imageView, nullptr);
+			co_await awaitable{ [this, &error, &imageView] { vkDestroyImageView(m_Device, imageView, nullptr); } };
 			imageView = VK_NULL_HANDLE;
 		}
 
-		vkDestroySwapchainKHR(m_Device, prevSwapchain, nullptr);
+		co_await awaitable{ [this, &error, &prevSwapchain] { vkDestroySwapchainKHR(m_Device, prevSwapchain, nullptr); } };
 	}
 
 	uint32_t imageCount = 0;
@@ -667,15 +666,15 @@ bool Application::InitializeSwapchain()
 		imageViewCreateInfo.flags = 0;
 		imageViewCreateInfo.components = {};
 
-		error = vkCreateImageView(m_Device, &imageViewCreateInfo, nullptr, &m_SwapchainImageViews[i]);
+		co_await awaitable{ [this, &error, &imageViewCreateInfo, i] { error = vkCreateImageView(m_Device, &imageViewCreateInfo, nullptr, &m_SwapchainImageViews[i]); } };
 
 		if (VK_SUCCESS != error)
 		{
-			return false;
+			// return false;
 		}
 	}
 
-	return true;
+	// return true;
 }
 
 bool Application::InitializeFencesAndCommandPool()
@@ -734,7 +733,7 @@ bool Application::InitializeCommandBuffers()
 	m_CommandBuffers.resize(m_SwapchainImages.size());
 	m_DynamicRenderingCommandBuffers.resize(m_SwapchainImages.size());
 
-	VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAllocateInfo.pNext = nullptr;
 	commandBufferAllocateInfo.commandPool = m_CommandPool;
@@ -765,7 +764,7 @@ bool Application::InitializeSynchronization()
 	return (VK_SUCCESS == error);
 }
 
-void Application::FillCommandBuffers()
+Task<> Application::FillCommandBuffers()
 {
 	VkCommandBufferBeginInfo commandBufferBeginInfo{};
 	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -777,6 +776,8 @@ void Application::FillCommandBuffers()
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); i++)
 	{
+		co_await std::suspend_always{};
+
 		const VkCommandBuffer commandBuffer = m_CommandBuffers[i];
 
 		VkResult error = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
@@ -834,13 +835,13 @@ void Application::FillCommandBuffers()
 	}
 }
 
-void Application::CleanupSwapchain()
+Task<> Application::CleanupSwapchain()
 {
-	m_OffscreenImage.Destroy();
+	co_await awaitable{ [this] { m_OffscreenImage.Destroy(); } };
 
 	for (auto imageView : m_SwapchainImageViews)
 	{
-		vkDestroyImageView(m_Device, imageView, nullptr);
+		co_await awaitable{ [this, imageView] { vkDestroyImageView(m_Device, imageView, nullptr); } };
 	}
 
 	m_SwapchainImageViews.clear();
@@ -848,21 +849,23 @@ void Application::CleanupSwapchain()
 
 	if (m_Swapchain)
 	{
-		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
+		co_await awaitable{ [this] { vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr); } };
 		m_Swapchain = VK_NULL_HANDLE;
 	}
 }
 
-void Application::RecreateSwapchain()
+Task<> Application::RecreateSwapchain()
 {
 	vkDeviceWaitIdle(m_Device);
 
-	CleanupSwapchain();
+	await(CleanupSwapchain());
 
 	int width = 0, height = 0;
 
 	do
 	{
+		co_await std::suspend_always{};
+
 		glfwGetFramebufferSize(m_Window, &width, &height);
 		glfwWaitEvents();
 	} while (width == 0 || height == 0);
@@ -870,10 +873,12 @@ void Application::RecreateSwapchain()
 	m_Settings.resolutionX = m_Settings.supportDocking ? m_ViewportWidth : width;
 	m_Settings.resolutionY = m_Settings.supportDocking ? m_ViewportHeight : height;
 
-	InitializeSwapchain();
-	InitializeOffscreenImage();
-	OnResize();
-	FillCommandBuffers();
+	await(InitializeSwapchain());
+	co_await awaitable{ [this] { InitializeOffscreenImage(); } };
+	co_await awaitable{ [this] { OnResize(); } };
+	await(FillCommandBuffers());
+
+	m_FramebufferResized = false;
 }
 
 
@@ -882,10 +887,11 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 {
 	TaskUpdater::Update();
 
+	static size_t taskID = 0;
+
 	if (m_FramebufferResized)
 	{
-		m_FramebufferResized = false;
-		RecreateSwapchain();
+		Task<>::TrySchedule(taskID, RecreateSwapchain());
 		return;
 	}
 
@@ -896,7 +902,7 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		RecreateSwapchain();
+		Task<>::TrySchedule(taskID, RecreateSwapchain());
 		return;
 	}
 
@@ -941,7 +947,7 @@ void Application::ProcessFrame(const float dt, ImDrawData* drawData)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
-		RecreateSwapchain();
+		Task<>::TrySchedule(taskID, RecreateSwapchain());
 	}
 
 	else if (result != VK_SUCCESS)
@@ -1027,7 +1033,7 @@ void Application::FreeVulkan()
 	}
 	m_WaitForFrameFences.clear();
 
-	CleanupSwapchain();
+	CleanupSwapchain().Join();
 
 	if (m_Surface) {
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);

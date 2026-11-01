@@ -41,14 +41,14 @@ protected:
     void    InitializeImgui();
     bool    InitializeDevicesAndQueues();
     bool    InitializeSurface();
-    bool    InitializeSwapchain();
+    Task<>  InitializeSwapchain();
     bool    InitializeFencesAndCommandPool();
     bool    InitializeOffscreenImage();
     bool    InitializeCommandBuffers();
     bool    InitializeSynchronization();
-    void    FillCommandBuffers();
-    void    CleanupSwapchain();
-    void    RecreateSwapchain();
+    Task<>  FillCommandBuffers();
+    Task<>  CleanupSwapchain();
+    Task<>  RecreateSwapchain();
 
     void    ProcessFrame(float dt, ImDrawData* drawData);
     void    RecordCommandBuffer(size_t imageIndex, ImDrawData* drawData);
