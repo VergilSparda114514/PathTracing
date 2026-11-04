@@ -41,7 +41,7 @@ protected:
     void    InitializeImgui();
     bool    InitializeDevicesAndQueues();
     bool    InitializeSurface();
-    Task<>  InitializeSwapchain();
+    Task<bool>  InitializeSwapchain();
     bool    InitializeFencesAndCommandPool();
     bool    InitializeOffscreenImage();
     bool    InitializeCommandBuffers();

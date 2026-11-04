@@ -207,6 +207,12 @@ public:
 
 	constexpr size_t GetID() const { return m_ID; }
 
+	template <bool Move = true, std::convertible_to<T> U = T>
+	std::conditional_t<Move, U&&, U> GetValue() const
+	{
+		return Move ? std::move(m_Coro.promise().get_value()) : m_Coro.promise().get_value();
+	}
+
 	void operator()()
 	{
 		m_Coro();

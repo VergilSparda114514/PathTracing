@@ -86,7 +86,10 @@ bool Application::Initialize()
 		return false;
 	}
 
-	InitializeSwapchain().Join();
+	if (!InitializeSwapchain().Join().GetValue<false>())
+	{
+		return false;
+	}
 
 	if (!InitializeFencesAndCommandPool())
 	{
@@ -568,14 +571,14 @@ bool Application::InitializeSurface()
 	return true;
 }
 
-Task<> Application::InitializeSwapchain()
+Task<bool> Application::InitializeSwapchain()
 {
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 	VkResult error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &surfaceCapabilities);
 
 	if (VK_SUCCESS != error)
 	{
-		// return false;
+		co_return false;
 	}
 
 	// make sure we stay in our surface's limits
@@ -634,7 +637,7 @@ Task<> Application::InitializeSwapchain()
 	co_await awaitable{ [this, &error, &swapchainCreateInfo] { error = vkCreateSwapchainKHR(m_Device, &swapchainCreateInfo, nullptr, &m_Swapchain); } };
 	if (VK_SUCCESS != error)
 	{
-		// return false;
+		co_return false;
 	}
 
 	if (prevSwapchain)
@@ -670,11 +673,11 @@ Task<> Application::InitializeSwapchain()
 
 		if (VK_SUCCESS != error)
 		{
-			// return false;
+			co_return false;
 		}
 	}
 
-	// return true;
+	co_return true;
 }
 
 bool Application::InitializeFencesAndCommandPool()
