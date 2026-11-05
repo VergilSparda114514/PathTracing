@@ -10,7 +10,9 @@
 
 #include "GLFW/glfw3.h"
 
-constexpr int g_MaxFramesInFlight = 3;
+#include <tuple>
+
+inline constexpr int g_MaxFramesInFlight = 3;
 
 struct AppSettings
 {
@@ -41,12 +43,13 @@ protected:
     void    InitializeImgui();
     bool    InitializeDevicesAndQueues();
     bool    InitializeSurface();
-    Task<bool>  InitializeSwapchain();
+    Task<bool> InitializeSwapchain();
     bool    InitializeFencesAndCommandPool();
     bool    InitializeOffscreenImage();
     bool    InitializeCommandBuffers();
     bool    InitializeSynchronization();
-    Task<>  FillCommandBuffers();
+    void    FillCommandBuffers();
+    Task<std::vector<VkCommandBuffer>> RefillCommandBuffers();
     Task<>  CleanupSwapchain();
     Task<>  RecreateSwapchain();
 

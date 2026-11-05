@@ -61,6 +61,7 @@ public:
 		m_Exception = std::current_exception();
 	}
 
+	T&& release() { return std::move(m_Value); }
 	const T& get_value() const { return m_Value; }
 	std::exception_ptr get_exception() const { return m_Exception; }
 private:
@@ -210,7 +211,15 @@ public:
 	template <bool Move = true, std::convertible_to<T> U = T>
 	std::conditional_t<Move, U&&, U> GetValue() const
 	{
-		return Move ? std::move(m_Coro.promise().get_value()) : m_Coro.promise().get_value();
+		if constexpr (Move)
+		{
+			return std::move(m_Coro.promise().release());
+		}
+
+		else
+		{
+			return m_Coro.promise().get_value();
+		}
 	}
 
 	void operator()()

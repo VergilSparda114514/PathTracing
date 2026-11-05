@@ -961,7 +961,6 @@ namespace VulkanHelpers
 				initialData.resize(size);
 
 				in.seekg(0);
-
 				in.read(reinterpret_cast<char*>(initialData.data()), size);
 			}
 
@@ -969,8 +968,11 @@ namespace VulkanHelpers
 			cacheInfo.initialDataSize = initialData.size();
 		}
 
-		VkResult error = vkCreatePipelineCache(__details::s_Device, &cacheInfo, nullptr, &m_PipelineCache);
-		CHECK_VK_ERROR(error, "vkCreatePipelineCache");
+		if (VkResult result = vkCreatePipelineCache(__details::s_Device, &cacheInfo, nullptr, &m_PipelineCache); result != VK_SUCCESS)
+		{
+			std::filesystem::remove(m_FilePath);
+			Create(fileName);
+		}
 	}
 
 	// Helper functions

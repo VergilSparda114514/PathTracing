@@ -116,7 +116,7 @@ bool Application::Initialize()
 	InitializeImgui();
 
 	InitApp();
-	FillCommandBuffers().Join();
+	FillCommandBuffers();
 
 	return true;
 }
@@ -767,7 +767,7 @@ bool Application::InitializeSynchronization()
 	return (VK_SUCCESS == error);
 }
 
-Task<> Application::FillCommandBuffers()
+void Application::FillCommandBuffers()
 {
 	VkCommandBufferBeginInfo commandBufferBeginInfo{};
 	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -779,8 +779,6 @@ Task<> Application::FillCommandBuffers()
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); i++)
 	{
-		co_await std::suspend_always{};
-
 		const VkCommandBuffer commandBuffer = m_CommandBuffers[i];
 
 		VkResult error = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
@@ -811,7 +809,7 @@ Task<> Application::FillCommandBuffers()
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-		VkImageCopy copyRegion;
+		VkImageCopy copyRegion{};
 		copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 		copyRegion.srcOffset = { 0, 0, 0 };
 		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
@@ -836,6 +834,90 @@ Task<> Application::FillCommandBuffers()
 		error = vkEndCommandBuffer(commandBuffer);
 		CHECK_VK_ERROR(error, "vkEndCommandBuffer");
 	}
+}
+
+Task<std::vector<VkCommandBuffer>> Application::RefillCommandBuffers()
+{
+	std::vector<VkCommandBuffer> commandBuffers(m_CommandBuffers.size());
+
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.pNext = nullptr;
+	commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferAllocateInfo.commandPool = m_CommandPool;
+	commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+
+	vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, commandBuffers.data());
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo{};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.pNext = nullptr;
+	commandBufferBeginInfo.flags = 0;
+	commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+	VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+	for (size_t i = 0; i < commandBuffers.size(); i++)
+	{
+		co_await std::suspend_always{};
+
+		const VkCommandBuffer commandBuffer = commandBuffers[i];
+
+		VkResult error = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+		CHECK_VK_ERROR(error, "vkBeginCommandBuffer");
+
+		VulkanHelpers::ImageBarrier(commandBuffer,
+			m_OffscreenImage.GetImage(),
+			subresourceRange,
+			0,
+			VK_ACCESS_SHADER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_GENERAL);
+
+		FillCommandBuffer(commandBuffer, i); // user draw code
+
+		VulkanHelpers::ImageBarrier(commandBuffer,
+			m_SwapchainImages[i],
+			subresourceRange,
+			0,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		VulkanHelpers::ImageBarrier(commandBuffer,
+			m_OffscreenImage.GetImage(),
+			subresourceRange,
+			VK_ACCESS_SHADER_WRITE_BIT,
+			VK_ACCESS_TRANSFER_READ_BIT,
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		VkImageCopy copyRegion{};
+		copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		copyRegion.srcOffset = { 0, 0, 0 };
+		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		copyRegion.dstOffset = { 0, 0, 0 };
+		copyRegion.extent = { m_Settings.resolutionX, m_Settings.resolutionY, 1 };
+
+		vkCmdCopyImage(commandBuffer,
+			m_OffscreenImage.GetImage(),
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			m_SwapchainImages[i],
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&copyRegion);
+
+		VulkanHelpers::ImageBarrier(commandBuffer,
+			m_SwapchainImages[i], subresourceRange,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			0,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+		error = vkEndCommandBuffer(commandBuffer);
+		CHECK_VK_ERROR(error, "vkEndCommandBuffer");
+	}
+
+	co_return commandBuffers;
 }
 
 Task<> Application::CleanupSwapchain()
@@ -879,7 +961,18 @@ Task<> Application::RecreateSwapchain()
 	await(InitializeSwapchain());
 	co_await awaitable{ [this] { InitializeOffscreenImage(); } };
 	co_await awaitable{ [this] { OnResize(); } };
-	await(FillCommandBuffers());
+
+	auto refillCommandBuffersTask = RefillCommandBuffers();
+
+	while (refillCommandBuffersTask)
+	{
+		co_await std::suspend_always{};
+		refillCommandBuffersTask();
+	}
+
+	vkDeviceWaitIdle(m_Device);
+
+	m_CommandBuffers = refillCommandBuffersTask.GetValue();
 
 	m_FramebufferResized = false;
 }
@@ -1038,17 +1131,20 @@ void Application::FreeVulkan()
 
 	CleanupSwapchain().Join();
 
-	if (m_Surface) {
+	if (m_Surface)
+	{
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 		m_Surface = VK_NULL_HANDLE;
 	}
 
-	if (m_Device) {
+	if (m_Device)
+	{
 		vkDestroyDevice(m_Device, nullptr);
 		m_Device = VK_NULL_HANDLE;
 	}
 
-	if (m_Instance) {
+	if (m_Instance)
+	{
 		vkDestroyInstance(m_Instance, nullptr);
 		m_Instance = VK_NULL_HANDLE;
 	}
