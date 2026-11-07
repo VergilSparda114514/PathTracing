@@ -30,18 +30,18 @@ public:
 
     const std::vector<VkDescriptorBufferInfo>& GetAttribsBufferInfos() const { return m_AttribsBufferInfos; }
     const std::vector<VkDescriptorBufferInfo>& GetFacesBufferInfos() const { return m_FacesBufferInfos; }
-    const std::vector<VkDescriptorImageInfo>& GetTexturesInfos() const { return m_TexturesInfos; }
-    const std::vector<VkDescriptorImageInfo>& GetBumpMapsInfos() const { return m_BumpMapsInfos; }
+    const std::vector<VkDescriptorImageInfo>& GetMapInfos() const { return m_MapInfos; }
 	const VkDescriptorImageInfo& GetEnvTextureDescInfo() const { return m_EnvTextureDescInfo; }
 public:
     Camera camera{ 60.0f, 0.1f, 100.0f };
 private:
+    bool TryLoadMap(const std::string& texName, size_t& dstMap);
     void Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath);
     void LoadScene(const std::filesystem::path& scenePath);
 private:
     std::filesystem::path           m_ScenePath{};
-    std::vector<RTMesh>                   m_Meshes{};
-    std::vector<RTMaterial>               m_Materials{};
+    std::vector<RTMesh>             m_Meshes{};
+    std::vector<RTMaterial>         m_Materials{};
 
     VulkanHelpers::Image            m_EnvTexture{};
     VkDescriptorImageInfo           m_EnvTextureDescInfo{};
@@ -52,11 +52,14 @@ private:
     RTAccelerationStructure               m_TLAS{};
 
     // Shader resources
-    std::vector<VkDescriptorBufferInfo>   m_AttribsBufferInfos{};
-    std::vector<VkDescriptorBufferInfo>   m_FacesBufferInfos{};
+
     VulkanHelpers::Buffer                 m_InstancesBuffer{};
     VulkanHelpers::Buffer                 m_MaterialsBuffer{};
     VulkanHelpers::Buffer                 m_ScratchBuffer{};
-    std::vector<VkDescriptorImageInfo>    m_TexturesInfos{};
-    std::vector<VkDescriptorImageInfo>    m_BumpMapsInfos{};
+
+    std::vector<VkDescriptorBufferInfo>   m_AttribsBufferInfos{};
+    std::vector<VkDescriptorBufferInfo>   m_FacesBufferInfos{};
+
+    std::vector<VulkanHelpers::Image>       m_Maps{};
+    std::vector<VkDescriptorImageInfo>      m_MapInfos{};
 };

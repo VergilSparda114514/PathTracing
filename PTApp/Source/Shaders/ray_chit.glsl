@@ -16,9 +16,8 @@ layout(set = FACES_SET, binding = 0, std430) readonly buffer FacesBuffer {
 layout(set = MAT_SET, binding = 0, std430) readonly buffer MaterialsBuffer {
     Material Materials[];
 };
-layout(set = MAT_SET, binding = 1) uniform sampler2D Textures[];
 
-layout(set = NORM_SET, binding = 0) uniform sampler2D BumpMaps[];
+layout(set = MAP_SET, binding = 0) uniform sampler2D Maps[];
 
 layout(location = 0) rayPayloadInEXT RayPayload PrimaryRay;
                      hitAttributeEXT vec2 HitAttribs;
@@ -57,7 +56,9 @@ void main()
     mat3 normalMatrix = transpose(inverse(mat3(gl_ObjectToWorldEXT)));
     vec3 normal = normalize(normalMatrix * N);
     
-    vec3 texel = textureLod(Textures[matID], uv, PrimaryRay.bounce).rgb;
+    Material material = Materials[matID];
+
+    vec3 texel = textureLod(Maps[material.diffuseMap], uv, PrimaryRay.bounce).rgb;
     
     float strength = Materials[matID].bumpStrength;
 
@@ -68,15 +69,15 @@ void main()
         
         mat3 TBN = mat3(T, B, N);
 
-        vec2 texSize = vec2(textureSize(BumpMaps[matID], 0));
-        vec2 texel = 1.0 / texSize;
+        vec2 texSize = vec2(textureSize(Maps[material.bumpMap], 0));
+        vec2 texCoord = 1.0 / texSize;
         
-        float dU = texel.x;
-        float dV = texel.y;
+        float dU = texCoord.x;
+        float dV = texCoord.y;
         
-        float h  = textureLod(BumpMaps[matID], uv, 0).r;
-        float hx = textureLod(BumpMaps[matID], uv + vec2(dU, 0.0), 0).r;
-        float hy = textureLod(BumpMaps[matID], uv + vec2(0.0, dV), 0).r;
+        float h  = textureLod(Maps[material.bumpMap], uv, 0).r;
+        float hx = textureLod(Maps[material.bumpMap], uv + vec2(dU, 0.0), 0).r;
+        float hy = textureLod(Maps[material.bumpMap], uv + vec2(0.0, dV), 0).r;
 
         float dHdU = (hx - h);
         float dHdV = (hy - h);

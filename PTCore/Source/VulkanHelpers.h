@@ -43,7 +43,10 @@ namespace VulkanHelpers
     class Buffer
     {
     public:
-        ~Buffer();
+        ~Buffer()
+        {
+            Destroy();
+        }
 
         VkResult        Create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
         void            Destroy();
@@ -76,7 +79,10 @@ namespace VulkanHelpers
     class Image
     {
     public:
-        ~Image();
+        ~Image()
+        {
+            Destroy();
+        }
 
         VkResult    Create(VkImageType imageType,
                            VkFormat format,
@@ -100,6 +106,15 @@ namespace VulkanHelpers
         VkImageView GetImageView() const { return m_ImageView; }
         VkSampler   GetSampler() const { return m_Sampler; }
 		VkExtent3D  GetExtent() const { return m_Extent; }
+        VkDescriptorImageInfo GetDescriptorInfo() const
+        {
+            VkDescriptorImageInfo info{};
+            info.sampler = GetSampler();
+            info.imageView = GetImageView();
+            info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            return info;
+        }
     private:
         // For Vulkan
 
@@ -132,7 +147,10 @@ namespace VulkanHelpers
     class Shader
     {
     public:
-        ~Shader();
+        ~Shader()
+        {
+            Destroy();
+        }
 
         std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
             const std::vector<std::pair<std::string, std::string>>& definitions = {}, const VkSpecializationInfo* specializationConstants = nullptr);
@@ -149,11 +167,15 @@ namespace VulkanHelpers
     class PipelineCache
     {
     public:
-        ~PipelineCache();
+        ~PipelineCache()
+        {
+            Destroy();
+        }
 
         VkPipelineCache Get() const { return m_PipelineCache; }
 
         void Create(const std::filesystem::path& fileName);
+        void Destroy();
     private:
         VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
@@ -165,9 +187,10 @@ namespace VulkanHelpers
     class ComputePass
     {
     public:
-        ~ComputePass();
-
-        void Reset();
+        ~ComputePass()
+        {
+            Reset();
+        }
 
         ComputePass& BindImage(const Image& image);
         ComputePass& BindSampler(const Image& image);
@@ -176,6 +199,7 @@ namespace VulkanHelpers
 
         void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions = {},
             std::shared_ptr<PipelineCache> pipelineCache = nullptr);
+        void Reset();
 
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>

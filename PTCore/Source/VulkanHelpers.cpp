@@ -113,11 +113,6 @@ namespace VulkanHelpers
 
 	// Buffer
 
-	Buffer::~Buffer()
-	{
-		Destroy();
-	}
-
 	VkResult Buffer::Create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties)
 	{
 		VkResult result = VK_SUCCESS;
@@ -235,11 +230,6 @@ namespace VulkanHelpers
 	}
 
 	// Image
-
-	Image::~Image()
-	{
-		Destroy();
-	}
 
 	VkResult Image::Create(VkImageType imageType,
 		VkFormat format,
@@ -585,11 +575,6 @@ namespace VulkanHelpers
 
 	// Shader
 
-	Shader::~Shader()
-	{
-		Destroy();
-	}
-
 	std::vector<uint32_t> Shader::Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
 		const std::vector<std::pair<std::string, std::string>>& definitions, const VkSpecializationInfo* specializationConstants)
 	{
@@ -658,49 +643,62 @@ namespace VulkanHelpers
 		}
 	}
 
+	// Pipeline Cache
+
+	void PipelineCache::Create(const std::filesystem::path& fileName)
+	{
+		return;
+
+		m_FilePath = "Resource" / fileName;
+
+		VkPipelineCacheCreateInfo cacheInfo{};
+		cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+
+		if (std::filesystem::exists(m_FilePath))
+		{
+			std::vector<uint8_t> initialData{};
+
+			std::ifstream in(m_FilePath, std::ios::binary | std::ios::ate);
+
+			const std::streamsize size = in.tellg();
+
+			if (size)
+			{
+				initialData.resize(size);
+
+				in.seekg(0);
+				in.read(reinterpret_cast<char*>(initialData.data()), size);
+			}
+
+			cacheInfo.pInitialData = initialData.data();
+			cacheInfo.initialDataSize = initialData.size();
+		}
+
+		if (VkResult result = vkCreatePipelineCache(__details::s_Device, &cacheInfo, nullptr, &m_PipelineCache); result != VK_SUCCESS)
+		{
+			std::filesystem::remove(m_FilePath);
+			Create(fileName);
+		}
+	}
+
+	void PipelineCache::Destroy()
+	{
+		if (m_PipelineCache)
+		{
+			size_t cacheSize = 0;
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, nullptr);
+
+			std::vector<uint8_t> cacheData(cacheSize);
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, cacheData.data());
+
+			std::ofstream out(m_FilePath, std::ios::binary);
+			out.write(reinterpret_cast<const char*>(cacheData.data()), cacheData.size());
+
+			vkDestroyPipelineCache(__details::s_Device, m_PipelineCache, nullptr);
+		}
+	}
+
 	// Compute pass
-
-	ComputePass::~ComputePass()
-	{
-		Reset();
-	}
-
-	void ComputePass::Reset()
-	{
-		if (m_DescriptorSetLayout)
-		{
-			vkDestroyDescriptorSetLayout(__details::s_Device, m_DescriptorSetLayout, nullptr);
-			m_DescriptorSetLayout = VK_NULL_HANDLE;
-		}
-
-		if (m_DescriptorSet)
-		{
-			vkFreeDescriptorSets(__details::s_Device, m_DescriptorPool, 1, &m_DescriptorSet);
-			m_DescriptorSet = VK_NULL_HANDLE;
-		}
-
-		if (m_DescriptorPool)
-		{
-			vkDestroyDescriptorPool(__details::s_Device, m_DescriptorPool, nullptr);
-			m_DescriptorPool = VK_NULL_HANDLE;
-		}
-
-		m_ImageInfos.clear();
-		m_BufferInfos.clear();
-
-		m_DescriptorSetLayoutBindings.clear();
-		m_DescriptorWrites.clear();
-
-		if (m_PipelineLayout)
-		{
-			vkDestroyPipelineLayout(__details::s_Device, m_PipelineLayout, nullptr);
-		}
-
-		if (m_Pipeline)
-		{
-			vkDestroyPipeline(__details::s_Device, m_Pipeline, nullptr);
-		}
-	}
 
 	ComputePass& ComputePass::BindImage(const Image& image)
 	{
@@ -891,6 +889,43 @@ namespace VulkanHelpers
 		CHECK_VK_ERROR(error, "vkCreateComputePipelines");
 	}
 
+	void ComputePass::Reset()
+	{
+		if (m_DescriptorSetLayout)
+		{
+			vkDestroyDescriptorSetLayout(__details::s_Device, m_DescriptorSetLayout, nullptr);
+			m_DescriptorSetLayout = VK_NULL_HANDLE;
+		}
+
+		if (m_DescriptorSet)
+		{
+			vkFreeDescriptorSets(__details::s_Device, m_DescriptorPool, 1, &m_DescriptorSet);
+			m_DescriptorSet = VK_NULL_HANDLE;
+		}
+
+		if (m_DescriptorPool)
+		{
+			vkDestroyDescriptorPool(__details::s_Device, m_DescriptorPool, nullptr);
+			m_DescriptorPool = VK_NULL_HANDLE;
+		}
+
+		m_ImageInfos.clear();
+		m_BufferInfos.clear();
+
+		m_DescriptorSetLayoutBindings.clear();
+		m_DescriptorWrites.clear();
+
+		if (m_PipelineLayout)
+		{
+			vkDestroyPipelineLayout(__details::s_Device, m_PipelineLayout, nullptr);
+		}
+
+		if (m_Pipeline)
+		{
+			vkDestroyPipeline(__details::s_Device, m_Pipeline, nullptr);
+		}
+	}
+
 	void ComputePass::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const
 	{
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
@@ -920,59 +955,6 @@ namespace VulkanHelpers
 		write.pTexelBufferView = nullptr;
 
 		return write;
-	}
-
-	// Pipeline Cache
-
-	PipelineCache::~PipelineCache()
-	{
-		if (m_PipelineCache)
-		{
-			size_t cacheSize = 0;
-			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, nullptr);
-
-			std::vector<uint8_t> cacheData(cacheSize);
-			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, cacheData.data());
-
-			std::ofstream out(m_FilePath, std::ios::binary);
-			out.write(reinterpret_cast<const char*>(cacheData.data()), cacheData.size());
-
-			vkDestroyPipelineCache(__details::s_Device, m_PipelineCache, nullptr);
-		}
-	}
-
-	void PipelineCache::Create(const std::filesystem::path& fileName)
-	{
-		m_FilePath = "Resource" / fileName;
-
-		VkPipelineCacheCreateInfo cacheInfo{};
-		cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-
-		if (std::filesystem::exists(m_FilePath))
-		{
-			std::vector<uint8_t> initialData{};
-
-			std::ifstream in(m_FilePath, std::ios::binary | std::ios::ate);
-
-			const std::streamsize size = in.tellg();
-
-			if (size)
-			{
-				initialData.resize(size);
-
-				in.seekg(0);
-				in.read(reinterpret_cast<char*>(initialData.data()), size);
-			}
-
-			cacheInfo.pInitialData = initialData.data();
-			cacheInfo.initialDataSize = initialData.size();
-		}
-
-		if (VkResult result = vkCreatePipelineCache(__details::s_Device, &cacheInfo, nullptr, &m_PipelineCache); result != VK_SUCCESS)
-		{
-			std::filesystem::remove(m_FilePath);
-			Create(fileName);
-		}
 	}
 
 	// Helper functions

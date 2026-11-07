@@ -242,7 +242,7 @@ void main()
 		resultColor += TraceRay();
 	}
 	
-	resultColor = resultColor / scene.numSamples;
+	resultColor /= float(scene.numSamples);
 
 	if (scene.accumulationFrame == 0)
 	{

@@ -8,10 +8,8 @@
 #include <execution>
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#ifndef WL_DEBUG // Multithreading in debug mode is somehow takes twice the time so we'll disable it
 #define TINYOBJLOADER_USE_MULTITHREADING
 #define TINYOBJLOADER_USE_SIMD
-#endif // WL_DEBUG
 #include <tiny_obj_loader.h>
 
 #define YAML_CPP_STATIC_DEFINE
@@ -159,6 +157,48 @@ void RTScene::Destroy(VkDevice device)
 	}
 }
 
+bool RTScene::TryLoadMap(const std::string& texName, size_t& dstMap)
+{
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	if (!texName.empty())
+	{
+		std::filesystem::path filename = texName;
+		std::filesystem::path baseDir = filename.parent_path().filename();
+		filename = filename.filename(); // In case the texture path in MTL file contains directory, we ignore it and search in the same directory as the OBJ file.
+		std::filesystem::path filePath = s_TexFolder / baseDir / filename;
+
+		VulkanHelpers::Image& diffuseMap = m_Maps.emplace_back();
+
+		if (diffuseMap.Load(filePath.string().c_str()))
+		{
+			dstMap = m_Maps.size();
+
+			diffuseMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, diffuseMap.GetFormat(), subresourceRange);
+			diffuseMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+			return true;
+		}
+
+		else
+		{
+			m_Maps.pop_back();
+
+			return false;
+		}
+	}
+
+	else
+	{
+		return false;
+	}
+}
+
 void RTScene::Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath)
 {
 	LoadScene(s_ScenesFolder / scenePath);
@@ -183,10 +223,11 @@ void RTScene::Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const 
 
 void RTScene::LoadScene(const std::filesystem::path& scenePath)
 {
-	tinyobj::basic_attrib_t attrib;
-	std::vector<tinyobj::basic_shape_t<>> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
+	tinyobj::basic_attrib_t attrib{};
+	std::vector<tinyobj::basic_shape_t<>> shapes{};
+	std::vector<tinyobj::material_t> materials{};
+	std::string warn{};
+	std::string error{};
 
 	std::filesystem::path baseDir = scenePath.parent_path();
 
@@ -194,7 +235,7 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 	loadConfig.triangulate = true;
 	loadConfig.num_threads = -1;
 
-	const bool result = tinyobj::LoadObjOpt(&attrib, &shapes, &materials, &warn, &err, scenePath.string().c_str(), baseDir.string().c_str(), loadConfig);
+	const bool result = tinyobj::LoadObjOpt(&attrib, &shapes, &materials, &warn, &error, scenePath.string().c_str(), baseDir.string().c_str(), loadConfig);
 
 	if (result)
 	{
@@ -204,8 +245,6 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 		VkResult error = m_MaterialsBuffer.Create(materials.size() * sizeof(Material), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		CHECK_VK_ERROR(error, "materialsBuffer.Create");
 
-		printf("Loading Scene...\n");
-
 		std::vector<size_t> iterator(shapes.size(), 0);
 
 		for (size_t i = 0; i < shapes.size(); i++)
@@ -213,7 +252,7 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 			iterator[i] = i;
 		}
 
-		std::for_each(std::execution::par, iterator.begin(), iterator.end(), [this, shapes, &attrib](size_t meshIdx)
+		std::for_each(std::execution::par, iterator.begin(), iterator.end(), [this, &shapes = std::as_const(shapes), &attrib](size_t meshIdx)
 			{
 				RTMesh& mesh = m_Meshes[meshIdx];
 				const tinyobj::basic_shape_t<>& shape = shapes[meshIdx];
@@ -290,6 +329,19 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 		subresourceRange.baseArrayLayer = 0;
 		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
+		VulkanHelpers::Image& defaultTexture = m_Maps.emplace_back();
+
+		if (defaultTexture.Load(s_DefaultTex))
+		{
+			defaultTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, defaultTexture.GetFormat(), subresourceRange);
+			defaultTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		}
+
+		else
+		{
+			throw std::runtime_error("You're fucked");
+		}
+
 		Material* materialsBuffer = m_MaterialsBuffer.Map<Material>();
 
 		for (size_t i = 0; i < materials.size(); i++)
@@ -299,85 +351,48 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 
 			dstMat.name = srcMat.name;
 
-			vec3 color(1.0f);
-			float bumpStrength = 100.0f;
+			// Diffuse Map
 
-			if (!srcMat.diffuse_texname.empty())
+			vec3 color{ 1.0f };
+
+			if (!TryLoadMap(srcMat.diffuse_texname, dstMat.diffuseMap))
 			{
-				std::filesystem::path filename = srcMat.diffuse_texname;
-				std::filesystem::path baseDir = filename.parent_path().filename();
-				filename = filename.filename(); // In case the texture path in MTL file contains directory, we ignore it and search in the same directory as the OBJ file.
-				std::filesystem::path filePath = s_TexFolder / baseDir / filename;
-				std::filesystem::path bumpMapPath = s_TexFolder / baseDir / ("bump_" + filename.string());
-
-				if (dstMat.texture.Load(filePath.string().c_str()))
-				{
-					dstMat.texture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.texture.GetFormat(), subresourceRange);
-					dstMat.texture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-				}
-
-				else if (dstMat.texture.Load(s_DefaultTex.string().c_str()))
-				{
-					dstMat.texture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.texture.GetFormat(), subresourceRange);
-					dstMat.texture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-				}
-
-				if (dstMat.bumpMap.Load(bumpMapPath.string().c_str()))
-				{
-					dstMat.bumpMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.bumpMap.GetFormat(), subresourceRange);
-					dstMat.bumpMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-				}
-
-				else if (dstMat.bumpMap.Load(s_DefaultTex.string().c_str()))
-				{
-					dstMat.bumpMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.bumpMap.GetFormat(), subresourceRange);
-					dstMat.bumpMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-
-					bumpStrength = 0.0f;
-				}
-			}
-
-			else
-			{
-				if (dstMat.texture.Load(s_DefaultTex.string().c_str()))
-				{
-					dstMat.texture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.texture.GetFormat(), subresourceRange);
-					dstMat.texture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-				}
-
-				if (dstMat.bumpMap.Load(s_DefaultTex.string().c_str()))
-				{
-					dstMat.bumpMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, dstMat.bumpMap.GetFormat(), subresourceRange);
-					dstMat.bumpMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-
-					bumpStrength = 0.0f;
-				}
-
 				memcpy(&color, srcMat.diffuse, sizeof(vec3));
 			}
 
+			// Bump Map
+
+			float bumpStrength = TryLoadMap(srcMat.bump_texname, dstMat.bumpMap) ? 100.0f : 0.0f;
+
 			// Set material buffer
 
-			materialsBuffer[i].roughness = srcMat.roughness;
-			materialsBuffer[i].metallic = srcMat.metallic;
-			materialsBuffer[i].smoothness = srcMat.shininess;
-			materialsBuffer[i].transmittance = 1.0f - srcMat.dissolve;
-			materialsBuffer[i].ior = srcMat.ior;
-			materialsBuffer[i].absorptionStrength = 1.0f;
-			materialsBuffer[i].bumpStrength = bumpStrength;
-			materialsBuffer[i].baseReflectance = vec3(0.04f);
-			materialsBuffer[i].diffuseColor = color;
-			materialsBuffer[i].specularColor = color;
-			materialsBuffer[i].transmissionColor = color;
-			memcpy(&materialsBuffer[i].emission, srcMat.emission, sizeof(vec3));
+			Material& material = materialsBuffer[i];
+
+			material.diffuseMap = dstMat.diffuseMap;
+			material.bumpMap = dstMat.bumpMap;
+			material.roughness = srcMat.roughness;
+			material.metallic = srcMat.metallic;
+			material.smoothness = srcMat.shininess;
+			material.transmittance = 1.0f - srcMat.dissolve;
+			material.ior = srcMat.ior;
+			material.absorptionStrength = 1.0f;
+			material.bumpStrength = bumpStrength;
+			material.baseReflectance = vec3(0.04f);
+			material.diffuseColor = color;
+			material.specularColor = color;
+			material.transmissionColor = color;
+			memcpy(&material.emission, srcMat.emission, sizeof(vec3));
 		}
 
 		m_MaterialsBuffer.Unmap();
 	}
 
 	// Prepare shader resources infos
+
 	const size_t numMeshes = m_Meshes.size();
 	const size_t numMaterials = m_Materials.size();
+
+	// Descriptor Buffer Infos
 
 	m_AttribsBufferInfos.resize(numMeshes);
 	m_FacesBufferInfos.resize(numMeshes);
@@ -396,21 +411,12 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 		facesInfo.range = mesh.GetFacesBuffer().GetSize();
 	}
 
-	m_TexturesInfos.resize(numMaterials);
-	m_BumpMapsInfos.resize(numMaterials);
-	for (size_t i = 0; i < numMaterials; i++)
+	// Descriptor Image Infos
+
+	m_MapInfos.resize(m_Maps.size());
+	for (size_t i = 0; i < m_Maps.size(); i++)
 	{
-		const RTMaterial& mat = m_Materials[i];
-
-		VkDescriptorImageInfo& textureInfo = m_TexturesInfos[i];
-		textureInfo.sampler = mat.texture.GetSampler();
-		textureInfo.imageView = mat.texture.GetImageView();
-		textureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		VkDescriptorImageInfo& bumplMapInfo = m_BumpMapsInfos[i];
-		bumplMapInfo.sampler = mat.bumpMap.GetSampler();
-		bumplMapInfo.imageView = mat.bumpMap.GetImageView();
-		bumplMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		m_MapInfos[i] = m_Maps[i].GetDescriptorInfo();
 	}
 }
 

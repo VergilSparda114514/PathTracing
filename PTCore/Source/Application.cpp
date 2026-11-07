@@ -1,8 +1,6 @@
 #include <Application.h>
 #include <Singleton.h>
 
-#include <algorithm>
-
 static PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR = nullptr;
 static PFN_vkCmdEndRenderingKHR CmdEndRenderingKHR = nullptr;
 
