@@ -43,6 +43,10 @@ namespace VulkanHelpers
     class Buffer
     {
     public:
+        Buffer() = default;
+        Buffer(const Buffer&) = delete;
+        Buffer(Buffer&&) noexcept = default;
+
         ~Buffer()
         {
             Destroy();
@@ -62,6 +66,8 @@ namespace VulkanHelpers
         VkBuffer        GetBuffer() const { return m_Buffer; }
         VkDeviceSize    GetSize() const { return m_Size; }
 
+        Buffer& operator=(const Buffer&) = delete;
+        Buffer& operator=(Buffer&&) noexcept = default;
     private:
         VkBuffer        m_Buffer = VK_NULL_HANDLE;
         VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
@@ -79,6 +85,10 @@ namespace VulkanHelpers
     class Image
     {
     public:
+        Image() = default;
+        Image(const Image&) = delete;
+        Image(Image&&) noexcept = default;
+
         ~Image()
         {
             Destroy();
@@ -100,7 +110,8 @@ namespace VulkanHelpers
 
         void        Copy(VkCommandBuffer commandBuffer, const Image& other) const;
 
-        // getters
+        // Getters
+
         VkFormat    GetFormat() const { return m_Format; }
         VkImage     GetImage() const { return m_Image; }
         VkImageView GetImageView() const { return m_ImageView; }
@@ -115,9 +126,10 @@ namespace VulkanHelpers
 
             return info;
         }
-    private:
-        // For Vulkan
 
+        Image& operator=(const Image&) = delete;
+        Image& operator=(Image&&) noexcept = default;
+    private:
         VkFormat        m_Format = VK_FORMAT_B8G8R8A8_UNORM;
         VkImage         m_Image = VK_NULL_HANDLE;
         VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
@@ -147,6 +159,10 @@ namespace VulkanHelpers
     class Shader
     {
     public:
+        Shader() = default;
+        Shader(const Shader&) = delete;
+        Shader(Shader&&) noexcept = default;
+
         ~Shader()
         {
             Destroy();
@@ -157,6 +173,9 @@ namespace VulkanHelpers
         void    Destroy();
 
         VkPipelineShaderStageCreateInfo GetShaderStage() const { return m_Stage; };
+
+        Shader& operator=(const Shader&) = delete;
+        Shader& operator=(Shader&&) noexcept = default;
     private:
         VkShaderModule  m_Module = VK_NULL_HANDLE;
         VkPipelineShaderStageCreateInfo m_Stage{};
@@ -167,6 +186,10 @@ namespace VulkanHelpers
     class PipelineCache
     {
     public:
+        PipelineCache() = default;
+        PipelineCache(const PipelineCache&) = delete;
+        PipelineCache(PipelineCache&&) noexcept = default;
+
         ~PipelineCache()
         {
             Destroy();
@@ -176,6 +199,9 @@ namespace VulkanHelpers
 
         void Create(const std::filesystem::path& fileName);
         void Destroy();
+
+        PipelineCache& operator=(const PipelineCache&) = delete;
+        PipelineCache& operator=(PipelineCache&&) noexcept = default;
     private:
         VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
@@ -187,6 +213,10 @@ namespace VulkanHelpers
     class ComputePass
     {
     public:
+        ComputePass() = default;
+        ComputePass(const ComputePass&) = delete;
+        ComputePass(ComputePass&&) noexcept = default;
+
         ~ComputePass()
         {
             Reset();
@@ -204,6 +234,9 @@ namespace VulkanHelpers
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
         template <class PushConstant>
         void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions, const PushConstant* pc) const;
+
+        ComputePass& operator=(const ComputePass&) = delete;
+        ComputePass& operator=(ComputePass&&) noexcept = default;
     private:
         static VkDescriptorSetLayoutBinding GetBinding();
         static VkWriteDescriptorSet GetWrite();
