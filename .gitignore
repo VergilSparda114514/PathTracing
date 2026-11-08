@@ -2,8 +2,6 @@
 .vs/
 bin/
 bin-int/
-PTApp/Resource/Scenes
-PTApp/Resource/Textures
 
 # Files
 Makefile
