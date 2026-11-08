@@ -17,7 +17,7 @@ layout(set = MAT_SET, binding = 0, std430) readonly buffer MaterialsBuffer {
     Material Materials[];
 };
 
-layout(set = MAP_SET, binding = 0) uniform sampler2D Maps[];
+layout(set = TEX_SET, binding = 0) uniform sampler2D Maps[];
 
 layout(location = 0) rayPayloadInEXT RayPayload PrimaryRay;
                      hitAttributeEXT vec2 HitAttribs;

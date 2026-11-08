@@ -30,7 +30,7 @@ public:
 
     const std::vector<VkDescriptorBufferInfo>& GetAttribsBufferInfos() const { return m_AttribsBufferInfos; }
     const std::vector<VkDescriptorBufferInfo>& GetFacesBufferInfos() const { return m_FacesBufferInfos; }
-    const std::vector<VkDescriptorImageInfo>& GetMapInfos() const { return m_MapInfos; }
+    const std::vector<VkDescriptorImageInfo>& GetTextureInfos() const { return m_TextureInfos; }
 	const VkDescriptorImageInfo& GetEnvTextureDescInfo() const { return m_EnvTextureDescInfo; }
 public:
     Camera camera{ 60.0f, 0.1f, 100.0f };
@@ -60,6 +60,6 @@ private:
     std::vector<VkDescriptorBufferInfo>   m_AttribsBufferInfos{};
     std::vector<VkDescriptorBufferInfo>   m_FacesBufferInfos{};
 
-    std::vector<VulkanHelpers::Image>       m_Maps{};
-    std::vector<VkDescriptorImageInfo>      m_MapInfos{};
+    std::vector<VulkanHelpers::Image>       m_Textures{};
+    std::vector<VkDescriptorImageInfo>      m_TextureInfos{};
 };

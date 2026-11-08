@@ -19,7 +19,7 @@
 #define ATRIB_SET 1
 #define FACES_SET 2
 #define MAT_SET 3
-#define MAP_SET 4
+#define TEX_SET 4
 #define RESO_SET 5
 
 #define SCENE_AS_BINDING 0

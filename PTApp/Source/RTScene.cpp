@@ -17,10 +17,10 @@
 
 
 
-static const std::filesystem::path s_ScenesFolder = "Resource/Scenes/";
-static const std::filesystem::path s_EnvsFolder = "Resource/Environments/";
-static const std::filesystem::path s_TexFolder = "Resource/Textures/";
-static const std::filesystem::path s_DefaultTex = "Resource/default_tex.jpg";
+static const std::filesystem::path	s_ScenesFolder = "Resource/Scenes/";
+static const std::filesystem::path	s_EnvsFolder = "Resource/Environments/";
+static const std::filesystem::path	s_TexFolder = "Resource/Textures/";
+static const std::string			s_DefaultTexName = "default_tex.jpg";
 
 
 
@@ -173,11 +173,11 @@ bool RTScene::TryLoadMap(const std::string& texName, size_t& dstMap)
 		filename = filename.filename(); // In case the texture path in MTL file contains directory, we ignore it and search in the same directory as the OBJ file.
 		std::filesystem::path filePath = s_TexFolder / baseDir / filename;
 
-		VulkanHelpers::Image& diffuseMap = m_Maps.emplace_back();
+		VulkanHelpers::Image& diffuseMap = m_Textures.emplace_back();
 
-		if (diffuseMap.Load(filePath.string().c_str()))
+		if (diffuseMap.Load(filePath))
 		{
-			dstMap = m_Maps.size();
+			dstMap = m_Textures.size() - 1;
 
 			diffuseMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, diffuseMap.GetFormat(), subresourceRange);
 			diffuseMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
@@ -187,7 +187,7 @@ bool RTScene::TryLoadMap(const std::string& texName, size_t& dstMap)
 
 		else
 		{
-			m_Maps.pop_back();
+			m_Textures.pop_back();
 
 			return false;
 		}
@@ -329,17 +329,11 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 		subresourceRange.baseArrayLayer = 0;
 		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-		VulkanHelpers::Image& defaultTexture = m_Maps.emplace_back();
+		size_t dummy = 0;
 
-		if (defaultTexture.Load(s_DefaultTex))
+		if (!TryLoadMap(s_DefaultTexName, dummy))
 		{
-			defaultTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, defaultTexture.GetFormat(), subresourceRange);
-			defaultTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-		}
-
-		else
-		{
-			throw std::runtime_error("You're fucked");
+			throw std::runtime_error("Failed to load default texture");
 		}
 
 		Material* materialsBuffer = m_MaterialsBuffer.Map<Material>();
@@ -413,10 +407,10 @@ void RTScene::LoadScene(const std::filesystem::path& scenePath)
 
 	// Descriptor Image Infos
 
-	m_MapInfos.resize(m_Maps.size());
-	for (size_t i = 0; i < m_Maps.size(); i++)
+	m_TextureInfos.resize(m_Textures.size());
+	for (size_t i = 0; i < m_Textures.size(); i++)
 	{
-		m_MapInfos[i] = m_Maps[i].GetDescriptorInfo();
+		m_TextureInfos[i] = m_Textures[i].GetDescriptorInfo();
 	}
 }
 

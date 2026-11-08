@@ -47,10 +47,7 @@ namespace VulkanHelpers
         Buffer(const Buffer&) = delete;
         Buffer(Buffer&&) noexcept = default;
 
-        ~Buffer()
-        {
-            Destroy();
-        }
+        ~Buffer() = default;
 
         VkResult        Create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
         void            Destroy();
@@ -89,10 +86,7 @@ namespace VulkanHelpers
         Image(const Image&) = delete;
         Image(Image&&) noexcept = default;
 
-        ~Image()
-        {
-            Destroy();
-        }
+        ~Image() = default;
 
         VkResult    Create(VkImageType imageType,
                            VkFormat format,
@@ -163,10 +157,7 @@ namespace VulkanHelpers
         Shader(const Shader&) = delete;
         Shader(Shader&&) noexcept = default;
 
-        ~Shader()
-        {
-            Destroy();
-        }
+        ~Shader() = default;
 
         std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
             const std::vector<std::pair<std::string, std::string>>& definitions = {}, const VkSpecializationInfo* specializationConstants = nullptr);
@@ -190,15 +181,11 @@ namespace VulkanHelpers
         PipelineCache(const PipelineCache&) = delete;
         PipelineCache(PipelineCache&&) noexcept = default;
 
-        ~PipelineCache()
-        {
-            Destroy();
-        }
+        ~PipelineCache();
 
         VkPipelineCache Get() const { return m_PipelineCache; }
 
         void Create(const std::filesystem::path& fileName);
-        void Destroy();
 
         PipelineCache& operator=(const PipelineCache&) = delete;
         PipelineCache& operator=(PipelineCache&&) noexcept = default;
@@ -217,10 +204,7 @@ namespace VulkanHelpers
         ComputePass(const ComputePass&) = delete;
         ComputePass(ComputePass&&) noexcept = default;
 
-        ~ComputePass()
-        {
-            Reset();
-        }
+        ~ComputePass() = default;
 
         ComputePass& BindImage(const Image& image);
         ComputePass& BindSampler(const Image& image);

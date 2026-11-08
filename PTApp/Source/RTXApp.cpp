@@ -507,18 +507,18 @@ void RTXApplication::CreateRTDescriptorSetsLayouts()
 	CHECK_VK_ERROR(error, L"vkCreateDescriptorSetLayout");
 
 	// set 4:
-	// binding 0 .. N  ->  bump maps (N = num materials)
+	// binding 0 .. N  ->  textures (N = num maps)
 
-	VkDescriptorSetLayoutBinding mapsBinding{};
-	mapsBinding.binding = 0;
-	mapsBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	mapsBinding.descriptorCount = numMaterials;
-	mapsBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-	mapsBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding texturesBinding{};
+	texturesBinding.binding = 0;
+	texturesBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	texturesBinding.descriptorCount = m_Scene.GetTextureInfos().size();
+	texturesBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+	texturesBinding.pImmutableSamplers = nullptr;
 
-	setLayoutInfo.pBindings = &mapsBinding;
+	setLayoutInfo.pBindings = &texturesBinding;
 
-	error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_RTDescriptorSetsLayouts[MAP_SET]);
+	error = vkCreateDescriptorSetLayout(m_Device, &setLayoutInfo, nullptr, &m_RTDescriptorSetsLayouts[TEX_SET]);
 	CHECK_VK_ERROR(error, L"vkCreateDescriptorSetLayout");
 
 	// set 5:
@@ -763,17 +763,17 @@ void RTXApplication::UpdateRTDescriptorSets()
 
 	///////////////////////////////////////////////////////////
 
-	VkWriteDescriptorSet mapsBufferWrite{};
-	mapsBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	mapsBufferWrite.pNext = nullptr;
-	mapsBufferWrite.dstSet = m_RTDescriptorSets[MAP_SET];
-	mapsBufferWrite.dstBinding = 0;
-	mapsBufferWrite.dstArrayElement = 0;
-	mapsBufferWrite.descriptorCount = m_Scene.GetMapInfos().size();
-	mapsBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	mapsBufferWrite.pImageInfo = m_Scene.GetMapInfos().data();
-	mapsBufferWrite.pBufferInfo = nullptr;
-	mapsBufferWrite.pTexelBufferView = nullptr;
+	VkWriteDescriptorSet texturesWrite{};
+	texturesWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	texturesWrite.pNext = nullptr;
+	texturesWrite.dstSet = m_RTDescriptorSets[TEX_SET];
+	texturesWrite.dstBinding = 0;
+	texturesWrite.dstArrayElement = 0;
+	texturesWrite.descriptorCount = m_Scene.GetTextureInfos().size();
+	texturesWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	texturesWrite.pImageInfo = m_Scene.GetTextureInfos().data();
+	texturesWrite.pBufferInfo = nullptr;
+	texturesWrite.pTexelBufferView = nullptr;
 
 	///////////////////////////////////////////////////////////
 
@@ -833,7 +833,7 @@ void RTXApplication::UpdateRTDescriptorSets()
 		//
 		materialsBufferWrite,
 		//
-		mapsBufferWrite,
+		texturesWrite,
 		//
 		currReservoirBufferWrite,
 		prevReservoirBufferWrite,

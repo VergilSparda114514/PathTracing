@@ -604,7 +604,7 @@ namespace VulkanHelpers
 
 		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			throw std::runtime_error(fileName.string() + '\n' + result.GetErrorMessage());
+			throw std::runtime_error(std::format("{} : {}\n", fileName.string(), result.GetErrorMessage()));
 		}
 
 		std::vector<uint32_t> data(result.cbegin(), result.cend());
@@ -645,6 +645,23 @@ namespace VulkanHelpers
 
 	// Pipeline Cache
 
+	PipelineCache::~PipelineCache()
+	{
+		if (m_PipelineCache)
+		{
+			size_t cacheSize = 0;
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, nullptr);
+
+			std::vector<uint8_t> cacheData(cacheSize);
+			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, cacheData.data());
+
+			std::ofstream out(m_FilePath, std::ios::binary);
+			out.write(reinterpret_cast<const char*>(cacheData.data()), cacheData.size());
+
+			vkDestroyPipelineCache(__details::s_Device, m_PipelineCache, nullptr);
+		}
+	}
+
 	void PipelineCache::Create(const std::filesystem::path& fileName)
 	{
 		return;
@@ -678,23 +695,6 @@ namespace VulkanHelpers
 		{
 			std::filesystem::remove(m_FilePath);
 			Create(fileName);
-		}
-	}
-
-	void PipelineCache::Destroy()
-	{
-		if (m_PipelineCache)
-		{
-			size_t cacheSize = 0;
-			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, nullptr);
-
-			std::vector<uint8_t> cacheData(cacheSize);
-			vkGetPipelineCacheData(__details::s_Device, m_PipelineCache, &cacheSize, cacheData.data());
-
-			std::ofstream out(m_FilePath, std::ios::binary);
-			out.write(reinterpret_cast<const char*>(cacheData.data()), cacheData.size());
-
-			vkDestroyPipelineCache(__details::s_Device, m_PipelineCache, nullptr);
 		}
 	}
 
