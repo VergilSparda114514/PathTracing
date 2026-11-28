@@ -1,0 +1,258 @@
+#pragma once
+
+#include <vulkan/vulkan_raii.hpp>
+#include <shaderc/shaderc.hpp>
+
+#include <glm/glm.hpp>
+
+#include <filesystem>
+#include <cassert>
+
+#define CHECK_VK_ERROR(_error, _message) do {   \
+    if (VK_SUCCESS != _error) {                 \
+        assert(false && _message);              \
+    }                                           \
+} while (false)
+
+#define PFN(name) ((PFN_##name)vkGetDeviceProcAddr(__details::s_Device, #name))
+
+namespace VulkanHelpers
+{
+    namespace __details
+    {
+        static VkPhysicalDevice                 s_PhysicalDevice;
+        static VkDevice                         s_Device;
+        static VkCommandPool                    s_CommandPool;
+        static VkQueue                          s_TransferQueue;
+        static VkPhysicalDeviceMemoryProperties s_PhysicalDeviceMemoryProperties;
+    } // namespace __details
+
+    void     Initialize(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue transferQueue);
+    uint32_t GetMemoryType(VkMemoryRequirements& memoryRequiriments, VkMemoryPropertyFlags memoryProperties);
+    void     ImageBarrier(VkCommandBuffer commandBuffer,
+                          VkImage image,
+                          VkImageSubresourceRange& subresourceRange,
+                          VkAccessFlags srcAccessMask,
+                          VkAccessFlags dstAccessMask,
+                          VkImageLayout oldLayout,
+                          VkImageLayout newLayout);
+    VkCommandBuffer BeginSingleTimeCommandBuffer();
+    void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
+
+
+    class Buffer
+    {
+    public:
+        Buffer() = default;
+        Buffer(const Buffer&) = delete;
+        Buffer(Buffer&&) noexcept = default;
+
+        ~Buffer() = default;
+
+        VkResult        Create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties);
+        void            Destroy();
+
+        void*           Map(VkDeviceSize size = UINT64_MAX, VkDeviceSize offset = 0) const;
+        template <typename T = void>
+        T*              Map(VkDeviceSize size = UINT64_MAX, VkDeviceSize offset = 0) const;
+        void            Unmap() const;
+
+        bool            UploadData(const void* data, VkDeviceSize size, VkDeviceSize offset = 0) const;
+
+        // getters
+        VkBuffer        GetBuffer() const { return m_Buffer; }
+        VkDeviceSize    GetSize() const { return m_Size; }
+
+        Buffer& operator=(const Buffer&) = delete;
+        Buffer& operator=(Buffer&&) noexcept = default;
+    private:
+        VkBuffer        m_Buffer = VK_NULL_HANDLE;
+        VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
+        VkDeviceSize    m_Size = 0;
+    };
+
+    template <typename T>
+    T* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) const
+    {
+        return reinterpret_cast<T*>(Map(size, offset));
+    }
+
+
+
+    class Image
+    {
+    public:
+        Image() = default;
+        Image(const Image&) = delete;
+        Image(Image&&) noexcept = default;
+
+        ~Image() = default;
+
+        VkResult    Create(VkImageType imageType,
+                           VkFormat format,
+                           VkExtent3D extent,
+                           VkImageTiling tiling,
+                           VkImageUsageFlags usage,
+                           VkMemoryPropertyFlags memoryProperties);
+
+        VkResult	CreateRGBA32(VkExtent3D extent);
+
+        void        Destroy();
+        bool        Load(const std::filesystem::path& fileName);
+        VkResult    CreateImageView(VkImageViewType viewType, VkFormat format, VkImageSubresourceRange subresourceRange);
+        VkResult    CreateSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode);
+
+        void        Copy(VkCommandBuffer commandBuffer, const Image& other) const;
+
+        // Getters
+
+        VkFormat    GetFormat() const { return m_Format; }
+        VkImage     GetImage() const { return m_Image; }
+        VkImageView GetImageView() const { return m_ImageView; }
+        VkSampler   GetSampler() const { return m_Sampler; }
+		VkExtent3D  GetExtent() const { return m_Extent; }
+        VkDescriptorImageInfo GetDescriptorInfo() const
+        {
+            VkDescriptorImageInfo info{};
+            info.sampler = GetSampler();
+            info.imageView = GetImageView();
+            info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            return info;
+        }
+
+        Image& operator=(const Image&) = delete;
+        Image& operator=(Image&&) noexcept = default;
+    private:
+        VkFormat        m_Format = VK_FORMAT_B8G8R8A8_UNORM;
+        VkImage         m_Image = VK_NULL_HANDLE;
+        VkDeviceMemory  m_Memory = VK_NULL_HANDLE;
+        VkImageView     m_ImageView = VK_NULL_HANDLE;
+        VkSampler       m_Sampler = VK_NULL_HANDLE;
+        VkExtent3D      m_Extent{ 0, 0, 0 };
+    };
+
+
+
+    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
+    {
+    public:
+        shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override;
+
+        void ReleaseInclude(shaderc_include_result* data) override;
+    private:
+        struct IncludeData
+        {
+            std::string name;
+            std::string content;
+        };
+    };
+
+
+
+    class Shader
+    {
+    public:
+        Shader() = default;
+        Shader(const Shader&) = delete;
+        Shader(Shader&&) noexcept = default;
+
+        ~Shader() = default;
+
+        std::vector<uint32_t> Compile(const std::filesystem::path& fileName, shaderc_shader_kind kind, VkShaderStageFlagBits stage,
+            const std::vector<std::pair<std::string, std::string>>& definitions = {}, const VkSpecializationInfo* specializationConstants = nullptr);
+        void    Destroy();
+
+        VkPipelineShaderStageCreateInfo GetShaderStage() const { return m_Stage; };
+
+        Shader& operator=(const Shader&) = delete;
+        Shader& operator=(Shader&&) noexcept = default;
+    private:
+        VkShaderModule  m_Module = VK_NULL_HANDLE;
+        VkPipelineShaderStageCreateInfo m_Stage{};
+    };
+
+
+
+    class PipelineCache
+    {
+    public:
+        PipelineCache() = default;
+        PipelineCache(const PipelineCache&) = delete;
+        PipelineCache(PipelineCache&&) noexcept = default;
+
+        ~PipelineCache();
+
+        VkPipelineCache Get() const { return m_PipelineCache; }
+
+        void Create(const std::filesystem::path& fileName);
+
+        PipelineCache& operator=(const PipelineCache&) = delete;
+        PipelineCache& operator=(PipelineCache&&) noexcept = default;
+    private:
+        VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
+
+        std::filesystem::path m_FilePath{};
+    };
+
+
+
+    class ComputePass
+    {
+    public:
+        ComputePass() = default;
+        ComputePass(const ComputePass&) = delete;
+        ComputePass(ComputePass&&) noexcept = default;
+
+        ~ComputePass() = default;
+
+        ComputePass& BindImage(const Image& image);
+        ComputePass& BindSampler(const Image& image);
+        ComputePass& BindUniform(const Buffer& buffer);
+        ComputePass& BindBuffer(const Buffer& buffer);
+
+        void CreatePipeline(const std::filesystem::path& path, const std::vector<std::pair<std::string, std::string>>& definitions = {},
+            std::shared_ptr<PipelineCache> pipelineCache = nullptr);
+        void Reset();
+
+        void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions) const;
+        template <class PushConstant>
+        void Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions, const PushConstant* pc) const;
+
+        ComputePass& operator=(const ComputePass&) = delete;
+        ComputePass& operator=(ComputePass&&) noexcept = default;
+    private:
+        static VkDescriptorSetLayoutBinding GetBinding();
+        static VkWriteDescriptorSet GetWrite();
+    private:
+        Shader m_Shader{};
+
+        VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+
+        std::vector<VkDescriptorImageInfo> m_ImageInfos{};
+        std::vector<VkDescriptorBufferInfo> m_BufferInfos{};
+
+		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBindings{};
+        std::vector<VkWriteDescriptorSet> m_DescriptorWrites{};
+
+		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+        VkPipeline m_Pipeline = VK_NULL_HANDLE;
+    };
+
+    template <class PushConstant>
+    inline void ComputePass::Dispatch(VkCommandBuffer commandBuffer, VkExtent3D dimensions, const PushConstant* pc) const
+    {
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
+        vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstant), pc);
+        vkCmdDispatch(commandBuffer, dimensions.width, dimensions.height, dimensions.depth);
+    }
+
+
+
+    VkDeviceOrHostAddressKHR GetBufferDeviceAddress(const Buffer& buffer);
+    VkDeviceOrHostAddressConstKHR GetBufferDeviceAddressConst(const Buffer& buffer);
+
+} // namespace vulkanhelpers

@@ -1,0 +1,606 @@
+#include "RTScene.h"
+
+#include "shared_with_shaders.h"
+#include "VKKHR.h"
+
+#include <fstream>
+#include <algorithm>
+#include <execution>
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#define TINYOBJLOADER_USE_MULTITHREADING
+#define TINYOBJLOADER_USE_SIMD
+#include <tiny_obj_loader.h>
+
+#define YAML_CPP_STATIC_DEFINE
+#include <yaml-cpp/yaml.h>
+
+
+
+static const std::filesystem::path	s_ScenesFolder = "Resource/Scenes/";
+static const std::filesystem::path	s_EnvsFolder = "Resource/Environments/";
+static const std::filesystem::path	s_TexFolder = "Resource/Textures/";
+static const std::string			s_DefaultTexName = "default_tex.jpg";
+
+
+
+template <>
+struct YAML::convert<std::filesystem::path>
+{
+	static Node encode(const std::filesystem::path& rhs)
+	{
+		return convert<std::string>::encode(rhs.string());
+	}
+
+	static bool decode(const Node& node, std::filesystem::path& rhs)
+	{
+		std::string str{};
+
+		const bool result = convert<std::string>::decode(node, str);
+		rhs = str;
+
+		return result;
+	}
+};
+
+template <int Length, typename Type, glm::qualifier Qualifier>
+struct YAML::convert<glm::vec<Length, Type, Qualifier>>
+{
+	static Node encode(const glm::vec<Length, Type, Qualifier>& rhs)
+	{
+		Node node{ NodeType::Sequence };
+
+		for (size_t i = 0; i < Length; i++)
+		{
+			node.push_back(rhs[i]);
+		}
+
+		return node;
+	}
+
+	static bool decode(const Node& node, glm::vec<Length, Type, Qualifier>& rhs)
+	{
+		if (!node.IsSequence())
+		{
+			return false;
+		}
+
+		for (size_t i = 0; i < Length; i++)
+		{
+			rhs[i] = node[i].as<Type>();
+		}
+
+		return true;
+	}
+};
+
+template <>
+struct YAML::convert<RTMesh>
+{
+	static Node encode(const RTMesh& rhs)
+	{
+		Node node{ NodeType::Map };
+
+		node["Position"] = rhs.position;
+		node["Rotation"] = rhs.rotation;
+		node["Scale"] = rhs.scale;
+
+		return node;
+	}
+
+	static bool decode(const Node& node, RTMesh& rhs)
+	{
+		if (!node.IsMap())
+		{
+			return false;
+		}
+
+		rhs.position = node["Position"].as<glm::vec3>();
+		rhs.rotation = node["Rotation"].as<glm::vec3>();
+		rhs.scale = node["Scale"].as<glm::vec3>();
+
+		return true;
+	}
+};
+
+static void ComputeTangent(VertexAttribute* attribs, glm::vec3* positions, size_t numVerts, uint32_t* indices, size_t numFaces)
+{
+	for (int i = 0; i < numVerts; i++)
+	{
+		attribs[i].tangent = glm::vec4(0.0f);
+	}
+
+	for (int face = 0; face < numFaces; face++)
+	{
+		VertexAttribute& v0 = attribs[indices[3 * face + 0]];
+		VertexAttribute& v1 = attribs[indices[3 * face + 1]];
+		VertexAttribute& v2 = attribs[indices[3 * face + 2]];
+
+		const vec3 e1 = positions[indices[3 * face + 1]] - positions[indices[3 * face + 0]];
+		const vec3 e2 = positions[indices[3 * face + 2]] - positions[indices[3 * face + 0]];
+
+		const vec2 dUV1 = v1.uv - v0.uv;
+		const vec2 dUV2 = v2.uv - v0.uv;
+
+		const float r = 1.0f / (dUV1.x * dUV2.y - dUV1.y * dUV2.x);
+
+		const vec3 tangent = glm::normalize((e1 * dUV2.y - e2 * dUV1.y) * r);
+		const vec3 bitangent = glm::normalize((e2 * dUV1.x - e1 * dUV2.x) * r);
+
+		for (int i = 0; i < 3; i++)
+		{
+			const float handedness = glm::sign(glm::dot(glm::cross(attribs[indices[3 * face + i]].normal, tangent), bitangent));
+			attribs[indices[3 * face + i]].tangent += tangent * handedness;
+		}
+	}
+
+	for (int i = 0; i < numVerts; i++)
+	{
+		attribs[i].tangent = glm::normalize(attribs[i].tangent);
+	}
+}
+
+void RTScene::Destroy(VkDevice device)
+{
+	for (RTMesh& mesh : m_Meshes)
+	{
+		DestroyAccelerationStructureKHR(device, mesh.GetBLAS().accelerationStructure, nullptr);
+	}
+
+	m_Meshes.clear();
+	m_Materials.clear();
+
+	if (m_TLAS.accelerationStructure)
+	{
+		DestroyAccelerationStructureKHR(device, m_TLAS.accelerationStructure, nullptr);
+		m_TLAS.accelerationStructure = VK_NULL_HANDLE;
+	}
+}
+
+bool RTScene::TryLoadMap(const std::string& texName, size_t& dstMap)
+{
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	if (!texName.empty())
+	{
+		std::filesystem::path filename = texName;
+		std::filesystem::path baseDir = filename.parent_path().filename();
+		filename = filename.filename(); // In case the texture path in MTL file contains directory, we ignore it and search in the same directory as the OBJ file.
+		std::filesystem::path filePath = s_TexFolder / baseDir / filename;
+
+		VulkanHelpers::Image& diffuseMap = m_Textures.emplace_back();
+
+		if (diffuseMap.Load(filePath))
+		{
+			dstMap = m_Textures.size() - 1;
+
+			diffuseMap.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, diffuseMap.GetFormat(), subresourceRange);
+			diffuseMap.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+			return true;
+		}
+
+		else
+		{
+			m_Textures.pop_back();
+
+			return false;
+		}
+	}
+
+	else
+	{
+		return false;
+	}
+}
+
+void RTScene::Load(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath)
+{
+	LoadScene(s_ScenesFolder / scenePath);
+	BuildTLAS(device, cmdPool, queue);
+
+	m_EnvTexture.Load(s_EnvsFolder / envPath);
+
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	m_EnvTexture.CreateImageView(VK_IMAGE_VIEW_TYPE_2D, m_EnvTexture.GetFormat(), subresourceRange);
+	m_EnvTexture.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+	m_EnvTextureDescInfo.sampler = m_EnvTexture.GetSampler();
+	m_EnvTextureDescInfo.imageView = m_EnvTexture.GetImageView();
+	m_EnvTextureDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+}
+
+void RTScene::LoadScene(const std::filesystem::path& scenePath)
+{
+	tinyobj::basic_attrib_t attrib{};
+	std::vector<tinyobj::basic_shape_t<>> shapes{};
+	std::vector<tinyobj::material_t> materials{};
+	std::string warn{};
+	std::string error{};
+
+	std::filesystem::path baseDir = scenePath.parent_path();
+
+	tinyobj::OptLoadConfig loadConfig{};
+	loadConfig.triangulate = true;
+	loadConfig.num_threads = -1;
+
+	const bool result = tinyobj::LoadObjOpt(&attrib, &shapes, &materials, &warn, &error, scenePath.string().c_str(), baseDir.string().c_str(), loadConfig);
+
+	if (result)
+	{
+		m_Meshes.resize(shapes.size());
+		m_Materials.resize(materials.size());
+
+		VkResult error = m_MaterialsBuffer.Create(materials.size() * sizeof(Material), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		CHECK_VK_ERROR(error, "materialsBuffer.Create");
+
+		std::vector<size_t> iterator(shapes.size(), 0);
+
+		for (size_t i = 0; i < shapes.size(); i++)
+		{
+			iterator[i] = i;
+		}
+
+		std::for_each(std::execution::par, iterator.begin(), iterator.end(), [this, &shapes = std::as_const(shapes), &attrib](size_t meshIdx)
+			{
+				RTMesh& mesh = m_Meshes[meshIdx];
+				const tinyobj::basic_shape_t<>& shape = shapes[meshIdx];
+
+				mesh.name = shape.name;
+
+				const size_t numFaces = shape.mesh.num_face_vertices.size();
+				const size_t numVertices = numFaces * 3;
+
+				mesh.SetNumVertices(numVertices);
+				mesh.SetNumFaces(numFaces);
+
+				const size_t positionsBufferSize = numVertices * sizeof(vec3);
+				const size_t indicesBufferSize = numFaces * 3 * sizeof(uint32_t);
+				const size_t facesBufferSize = numFaces * sizeof(FaceAttribute);
+				const size_t attribsBufferSize = numVertices * sizeof(VertexAttribute);
+
+				mesh.CreateBuffers(positionsBufferSize, indicesBufferSize, facesBufferSize, attribsBufferSize);
+
+				vec3* positions = mesh.GetPositionsBuffer().Map<vec3>();
+				uint32_t* indices = mesh.GetIndicesBuffer().Map<uint32_t>();
+				FaceAttribute* faces = mesh.GetFacesBuffer().Map<FaceAttribute>();
+				VertexAttribute* attribs = mesh.GetAttribsBuffer().Map<VertexAttribute>();
+
+				size_t vIdx = 0;
+				for (size_t face = 0; face < numFaces; face++)
+				{
+					assert(shape.mesh.num_face_vertices[face] == 3);
+
+					for (size_t j = 0; j < 3; j++, vIdx++)
+					{
+						const tinyobj::index_t& i = shape.mesh.indices[vIdx];
+
+						positions[vIdx] = *reinterpret_cast<vec3*>(&attrib.vertices[3 * i.vertex_index]);
+						attribs[vIdx].normal = *reinterpret_cast<vec3*>(&attrib.normals[3 * i.normal_index]);
+						attribs[vIdx].uv = *reinterpret_cast<vec2*>(&attrib.texcoords.at(2 * i.texcoord_index));
+					}
+
+					const uint32_t a = static_cast<uint32_t>(3 * face + 0);
+					const uint32_t b = static_cast<uint32_t>(3 * face + 1);
+					const uint32_t c = static_cast<uint32_t>(3 * face + 2);
+
+					indices[a] = a;
+					indices[b] = b;
+					indices[c] = c;
+
+					faces[face].face = uvec3(a, b, c);
+					faces[face].matID = shape.mesh.material_ids[face];
+				}
+
+				ComputeTangent(attribs, positions, numVertices, indices, numFaces);
+
+				mesh.SetPositionToGeometricCentre();
+
+				mesh.GetIndicesBuffer().Unmap();
+				mesh.GetFacesBuffer().Unmap();
+				mesh.GetAttribsBuffer().Unmap();
+				mesh.GetPositionsBuffer().Unmap();
+			});
+
+		VkImageSubresourceRange subresourceRange{};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+		subresourceRange.baseArrayLayer = 0;
+		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+		size_t dummy = 0;
+
+		if (!TryLoadMap(s_DefaultTexName, dummy))
+		{
+			throw std::runtime_error("Failed to load default texture");
+		}
+
+		Material* materialsBuffer = m_MaterialsBuffer.Map<Material>();
+
+		for (size_t i = 0; i < materials.size(); i++)
+		{
+			const tinyobj::material_t& srcMat = materials[i];
+			RTMaterial& dstMat = m_Materials[i];
+
+			dstMat.name = srcMat.name;
+
+			// Diffuse Map
+
+			vec3 color{ 1.0f };
+
+			if (!TryLoadMap(srcMat.diffuse_texname, dstMat.diffuseMap))
+			{
+				memcpy(&color, srcMat.diffuse, sizeof(vec3));
+			}
+
+			// Bump Map
+
+			float bumpStrength = TryLoadMap(srcMat.bump_texname, dstMat.bumpMap) ? 100.0f : 0.0f;
+
+			// Set material buffer
+
+			Material& material = materialsBuffer[i];
+
+			material.diffuseMap = dstMat.diffuseMap;
+			material.bumpMap = dstMat.bumpMap;
+			material.roughness = srcMat.roughness;
+			material.metallic = srcMat.metallic;
+			material.smoothness = srcMat.shininess;
+			material.transmittance = 1.0f - srcMat.dissolve;
+			material.ior = srcMat.ior;
+			material.absorptionStrength = 1.0f;
+			material.bumpStrength = bumpStrength;
+			material.baseReflectance = vec3(0.04f);
+			material.diffuseColor = color;
+			material.specularColor = color;
+			material.transmissionColor = color;
+			memcpy(&material.emission, srcMat.emission, sizeof(vec3));
+		}
+
+		m_MaterialsBuffer.Unmap();
+	}
+
+	// Prepare shader resources infos
+
+	const size_t numMeshes = m_Meshes.size();
+	const size_t numMaterials = m_Materials.size();
+
+	// Descriptor Buffer Infos
+
+	m_AttribsBufferInfos.resize(numMeshes);
+	m_FacesBufferInfos.resize(numMeshes);
+	for (size_t i = 0; i < numMeshes; i++)
+	{
+		const RTMesh& mesh = m_Meshes[i];
+		VkDescriptorBufferInfo& attribsInfo = m_AttribsBufferInfos[i];
+		VkDescriptorBufferInfo& facesInfo = m_FacesBufferInfos[i];
+
+		attribsInfo.buffer = mesh.GetAttribsBuffer().GetBuffer();
+		attribsInfo.offset = 0;
+		attribsInfo.range = mesh.GetAttribsBuffer().GetSize();
+
+		facesInfo.buffer = mesh.GetFacesBuffer().GetBuffer();
+		facesInfo.offset = 0;
+		facesInfo.range = mesh.GetFacesBuffer().GetSize();
+	}
+
+	// Descriptor Image Infos
+
+	m_TextureInfos.resize(m_Textures.size());
+	for (size_t i = 0; i < m_Textures.size(); i++)
+	{
+		m_TextureInfos[i] = m_Textures[i].GetDescriptorInfo();
+	}
+}
+
+void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& scenePath, const std::filesystem::path& envPath)
+{
+	m_ScenePath = s_ScenesFolder / scenePath;
+	m_ScenePath.replace_extension(".scn");
+
+	YAML::Node scene{};
+
+	scene["Scene Path"] = scenePath;
+	scene["Environment Path"] = envPath;
+
+	scene["Camera Position"] = camera.position;
+	scene["Camera Direction"] = camera.direction;
+
+	std::ofstream out(m_ScenePath);
+	out << scene;
+	out.close();
+
+	Load(device, cmdPool, queue, scenePath, envPath);
+
+	for (const auto& mesh : m_Meshes)
+	{
+		scene["Meshes"].push_back(mesh);
+	}
+}
+
+void RTScene::Init(VkDevice device, VkCommandPool cmdPool, VkQueue queue, const std::filesystem::path& sceneFilePath)
+{
+	m_ScenePath = s_ScenesFolder / sceneFilePath;
+
+	if (!std::filesystem::exists(m_ScenePath))
+	{
+		throw std::invalid_argument("Scene file does not exist");
+	}
+
+	YAML::Node scene = YAML::LoadFile(m_ScenePath.string());
+
+	std::filesystem::path scenePath = scene["Scene Path"].as<std::filesystem::path>();
+	std::filesystem::path envPath = scene["Environment Path"].as<std::filesystem::path>();
+
+	camera.position = scene["Camera Position"].as<glm::vec3>();
+	camera.direction = scene["Camera Direction"].as<glm::vec3>();
+
+	Load(device, cmdPool, queue, scenePath, envPath);
+
+	for (int i = 0; i < scene["Meshes"].size(); i++)
+	{
+		RTMesh mesh = scene["Meshes"][i].as<RTMesh>();
+
+		m_Meshes[i].position = mesh.position;
+		m_Meshes[i].rotation = mesh.rotation;
+		m_Meshes[i].scale = mesh.scale;
+	}
+}
+
+void RTScene::Save()
+{
+	YAML::Node scene = YAML::LoadFile(m_ScenePath.string());
+
+	scene["Camera Position"] = camera.position;
+	scene["Camera Direction"] = camera.direction;
+
+	scene["Meshes"] = YAML::Node{ YAML::NodeType::Sequence };
+
+	for (const auto& mesh : m_Meshes)
+	{
+		scene["Meshes"].push_back(mesh);
+	}
+
+	std::ofstream out(m_ScenePath);
+	out << scene;
+	out.close();
+}
+
+void RTScene::BuildTLAS(VkDevice device, VkCommandPool cmdPool, VkQueue queue)
+{
+	VKKHR::LoadPFNs(device);
+
+	const size_t numMeshes = m_Meshes.size();
+
+	// create instances for our meshes
+
+	std::vector<VkAccelerationStructureInstanceKHR> instances(numMeshes, VkAccelerationStructureInstanceKHR{});
+	for (size_t i = 0; i < numMeshes; i++)
+	{
+		RTMesh& mesh = m_Meshes[i];
+
+		mesh.BuildBLAS(device, cmdPool, queue);
+
+		VkAccelerationStructureInstanceKHR& instance = instances[i];
+		instance.transform = mesh.GetTransform();
+		instance.instanceCustomIndex = static_cast<uint32_t>(i);
+		instance.mask = 0xff;
+		instance.instanceShaderBindingTableRecordOffset = 0;
+		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		instance.accelerationStructureReference = mesh.GetBLAS().handle;
+	}
+
+	VkResult error = m_InstancesBuffer.Create(instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
+		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	CHECK_VK_ERROR(error, "m_InstancesBuffer.Create");
+
+	if (!m_InstancesBuffer.UploadData(instances.data(), m_InstancesBuffer.GetSize()))
+	{
+		assert(false && "Failed to upload instances buffer");
+	}
+
+
+	// and here we create out top-level acceleration structure that'll represent our scene
+	VkAccelerationStructureGeometryInstancesDataKHR tlasInstancesInfo{};
+	tlasInstancesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+	tlasInstancesInfo.data = VulkanHelpers::GetBufferDeviceAddressConst(m_InstancesBuffer);
+
+	VkAccelerationStructureGeometryKHR  tlasGeoInfo{};
+	tlasGeoInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+	tlasGeoInfo.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+	tlasGeoInfo.geometry.instances = tlasInstancesInfo;
+
+	m_BuildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+	m_BuildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+	m_BuildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+	m_BuildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+	m_BuildInfo.geometryCount = 1;
+	m_BuildInfo.pGeometries = &tlasGeoInfo;
+
+	const uint32_t numInstances = static_cast<uint32_t>(instances.size());
+
+	VkAccelerationStructureBuildSizesInfoKHR sizeInfo = { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
+	GetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &m_BuildInfo, &numInstances, &sizeInfo);
+
+	m_TLAS.buffer.Create(sizeInfo.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	VkAccelerationStructureCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+	createInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+	createInfo.size = sizeInfo.accelerationStructureSize;
+	createInfo.buffer = m_TLAS.buffer.GetBuffer();
+
+	error = CreateAccelerationStructureKHR(device, &createInfo, nullptr, &m_TLAS.accelerationStructure);
+	CHECK_VK_ERROR(error, "vkCreateAccelerationStructureKHR");
+
+
+	error = m_ScratchBuffer.Create(sizeInfo.buildScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	CHECK_VK_ERROR(error, "scratchBuffer.Create");
+
+	m_BuildInfo.scratchData = VulkanHelpers::GetBufferDeviceAddress(m_ScratchBuffer);
+	m_BuildInfo.srcAccelerationStructure = VK_NULL_HANDLE;
+	m_BuildInfo.dstAccelerationStructure = m_TLAS.accelerationStructure;
+
+	VkCommandBuffer commandBuffer = VulkanHelpers::BeginSingleTimeCommandBuffer();
+
+	VkAccelerationStructureBuildRangeInfoKHR range{};
+	range.primitiveCount = numInstances;
+
+	const VkAccelerationStructureBuildRangeInfoKHR* ranges[] = { &range };
+
+	CmdBuildAccelerationStructuresKHR(commandBuffer, 1, &m_BuildInfo, ranges);
+
+	VulkanHelpers::EndSingleTimeCommandBuffer(commandBuffer);
+
+	VkAccelerationStructureDeviceAddressInfoKHR addressInfo{};
+	addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+	addressInfo.accelerationStructure = m_TLAS.accelerationStructure;
+	m_TLAS.handle = GetAccelerationStructureDeviceAddressKHR(device, &addressInfo);
+
+	// Set build info to update mode after building tlas to get it ready for tlas updates
+
+	m_TLASInstances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+	m_TLASInstances.data = VulkanHelpers::GetBufferDeviceAddressConst(m_InstancesBuffer);
+
+	m_TLASGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+	m_TLASGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+	m_TLASGeometry.geometry.instances = m_TLASInstances;
+
+	m_BuildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+	m_BuildInfo.pGeometries = &m_TLASGeometry;
+}
+
+void RTScene::UpdateTLAS(VkCommandBuffer commandBuffer)
+{
+	uint32_t numInstances = m_Meshes.size();
+
+	VkAccelerationStructureBuildSizesInfoKHR sizeInfo = { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
+	GetAccelerationStructureBuildSizesKHR(VKKHR::s_Device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &m_BuildInfo, &numInstances, &sizeInfo);
+
+	VkResult error = m_ScratchBuffer.Create(sizeInfo.updateScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	CHECK_VK_ERROR(error, "scratchBuffer.Create");
+
+	m_BuildInfo.scratchData = VulkanHelpers::GetBufferDeviceAddress(m_ScratchBuffer);
+	m_BuildInfo.srcAccelerationStructure = m_TLAS.accelerationStructure;
+	m_BuildInfo.dstAccelerationStructure = m_TLAS.accelerationStructure;
+
+	VkAccelerationStructureBuildRangeInfoKHR range{};
+	range.primitiveCount = numInstances;
+
+	const VkAccelerationStructureBuildRangeInfoKHR* ranges[] = { &range };
+
+	CmdBuildAccelerationStructuresKHR(commandBuffer, 1, &m_BuildInfo, ranges);
+}

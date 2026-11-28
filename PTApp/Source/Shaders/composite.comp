@@ -1,0 +1,27 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
+
+#include "../shared_with_shaders.h"
+
+layout(set = 0, binding = 0, rgba32f) uniform image2D ResultImage;
+layout(set = 0, binding = 1, rgba8)   uniform image2D FinalImage;
+
+layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+
+float LinearToSrgb(float channel)
+{
+    if (channel <= 0.0031308f) return 12.92f * channel;
+    else return 1.055f * pow(channel, 1.0f / 2.4f) - 0.055f;
+}
+
+vec3 LinearToSrgb(vec3 linear)
+{
+    return vec3(LinearToSrgb(linear.r), LinearToSrgb(linear.g), LinearToSrgb(linear.b));
+}
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	imageStore(FinalImage, coord, vec4(LinearToSrgb(imageLoad(ResultImage, coord).rgb), 1.0f));
+}
