@@ -6,7 +6,7 @@ Credits to [iOrange](https://iorange.github.io) for the tutorial
 
 ## Requirements
 
-* [Visual Studio 2022](https://visualstudio.com) (Recommended for Windows)
+* [Visual Studio 2026](https://visualstudio.com) (Recommended for Windows)
 * [Vulkan SDK](https://vulkan.lunarg.com) (Preferably a recent version)
 
 # Getting Started
